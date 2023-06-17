@@ -15,7 +15,10 @@ import (
 	"github.com/an-prata/webby/logger"
 )
 
-const serverPath = "/srv/http"
+const serverPath = "/srv/webby"
+const sitePath = serverPath + "/website"
+const certPath = serverPath + "/cert.pem"
+const keyPath = serverPath + "/key.pem"
 
 func defaultResponse(w http.ResponseWriter, req *http.Request) {
 	io.WriteString(w, "Page not found...\n")
@@ -28,9 +31,19 @@ func main() {
 		panic(err)
 	}
 
-	err = filepath.WalkDir(serverPath, func(path string, d fs.DirEntry, err error) error {
-		filePath := path
-		path = strings.ReplaceAll(path, serverPath, "")
+	if _, err = os.Stat(serverPath); err != nil {
+		log.LogErr("Server path " + serverPath + " does not exist. Exiting...")
+		os.Exit(1)
+	}
+
+	if _, err = os.Stat(sitePath); err != nil {
+		log.LogErr("Website path " + sitePath + " does not exist. Exiting...")
+		os.Exit(1)
+	}
+
+	err = filepath.WalkDir(sitePath, func(path string, d fs.DirEntry, err error) error {
+		filePath := strings.Clone(path)
+		path = strings.ReplaceAll(path, sitePath, "")
 
 		if d.IsDir() {
 			filePath += "/index.html"
@@ -57,5 +70,14 @@ func main() {
 		panic(err)
 	}
 
-	http.ListenAndServe(":8080", nil)
+	_, errCert := os.Stat(certPath)
+	_, errKey := os.Stat(keyPath)
+
+	if errCert != nil || errKey != nil {
+		log.LogWarn("Could not find certificate or keys. HTTPS will not be supported.")
+		http.ListenAndServe(":8080", nil)
+		return
+	}
+
+	http.ListenAndServeTLS(":8443", certPath, keyPath, nil)
 }
