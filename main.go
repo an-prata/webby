@@ -79,6 +79,5 @@ func main() {
 		return
 	}
 
-	go http.ListenAndServe(":80", nil)
 	http.ListenAndServeTLS(":43", certPath, keyPath, nil)
 }
