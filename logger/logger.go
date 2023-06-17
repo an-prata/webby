@@ -7,6 +7,7 @@ package logger
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 // Holds bit fields representing the different items to show in a log.
@@ -69,12 +70,14 @@ func NewLog(print LogLevel, save LogLevel, file string) (Log, error) {
 
 // Log a message at the error level.
 func (log Log) LogErr(msg string) error {
+	now := time.Now().Format(time.UnixDate)
+
 	if log.Printing&Err == Err {
-		fmt.Printf("[%s%sERR%s]:  %s\n", bold, red, normal, msg)
+		fmt.Printf("[%s%sERR%s]  (%s): %s\n", bold, red, normal, now, msg)
 	}
 
 	if log.Saving&Err == Err && log.file != nil {
-		_, err := fmt.Fprintf(log.file, "[ERR]:  %s\n", msg)
+		_, err := fmt.Fprintf(log.file, "[ERR]  (%s): %s\n", now, msg)
 		return err
 	}
 
@@ -83,12 +86,14 @@ func (log Log) LogErr(msg string) error {
 
 // Log a message at the warning level.
 func (log Log) LogWarn(msg string) error {
+	now := time.Now().Format(time.UnixDate)
+
 	if log.Printing&Warn == Warn {
-		fmt.Printf("[%s%sWARN%s]: %s\n", bold, yellow, normal, msg)
+		fmt.Printf("[%s%sWARN%s] (%s): %s\n", bold, yellow, normal, now, msg)
 	}
 
 	if log.Saving&Warn == Warn && log.file != nil {
-		_, err := fmt.Fprintf(log.file, "[WARN]: %s\n", msg)
+		_, err := fmt.Fprintf(log.file, "[WARN] (%s): %s\n", now, msg)
 		return err
 	}
 
@@ -97,12 +102,14 @@ func (log Log) LogWarn(msg string) error {
 
 // Log a message at the info level.
 func (log Log) LogInfo(msg string) error {
+	now := time.Now().Format(time.UnixDate)
+
 	if log.Printing&Info == Info {
-		fmt.Printf("[%s%sINFO%s]: %s\n", bold, blue, normal, msg)
+		fmt.Printf("[%s%sINFO%s] (%s): %s\n", bold, blue, normal, now, msg)
 	}
 
 	if log.Saving&Info == Info && log.file != nil {
-		_, err := fmt.Fprintf(log.file, "[INFO]: %s\n", msg)
+		_, err := fmt.Fprintf(log.file, "[INFO] (%s): %s\n", now, msg)
 		return err
 	}
 
