@@ -59,7 +59,7 @@ func main() {
 				return
 			}
 
-			log.LogInfo("Got request from " + req.RemoteAddr + " for " + req.RequestURI)
+			log.LogInfo("Got request (" + req.Proto + ") from " + req.RemoteAddr + " for " + req.RequestURI)
 			http.ServeFile(w, req, filePath)
 		})
 
