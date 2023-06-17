@@ -75,10 +75,12 @@ func main() {
 
 	if errCert != nil || errKey != nil {
 		log.LogWarn("Could not find certificate or keys. HTTPS will not be supported.")
-		http.ListenAndServe(":80", nil)
+		err := http.ListenAndServe(":80", nil)
+		log.LogErr(err.Error())
 		return
 	}
 
 	go http.ListenAndServe(":80", nil)
-	http.ListenAndServeTLS(":443", certPath, keyPath, nil)
+	errHttps := http.ListenAndServeTLS(":443", certPath, keyPath, nil)
+	log.LogErr(errHttps.Error())
 }
