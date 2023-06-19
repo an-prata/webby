@@ -6,13 +6,11 @@ package main
 
 import (
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/an-prata/webby/logger"
+	"github.com/an-prata/webby/server"
 )
 
 const serverPath = "/srv/webby"
@@ -31,56 +29,17 @@ func main() {
 		panic(err)
 	}
 
-	if _, err = os.Stat(serverPath); err != nil {
-		log.LogErr("Server path " + serverPath + " does not exist. Exiting...")
-		os.Exit(1)
+	opts := server.ServerOptions{
+		Site: sitePath, Cert: "", Key: "",
 	}
 
-	if _, err = os.Stat(sitePath); err != nil {
-		log.LogErr("Website path " + sitePath + " does not exist. Exiting...")
-		os.Exit(1)
-	}
-
-	err = filepath.WalkDir(sitePath, func(path string, d fs.DirEntry, err error) error {
-		filePath := strings.Clone(path)
-		path = strings.ReplaceAll(path, sitePath, "")
-
-		if d.IsDir() {
-			filePath += "/index.html"
-			path += "/"
-		}
-
-		log.LogInfo("Mapped " + filePath + " to " + path)
-
-		http.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
-			if _, err := os.Stat(filePath); err != nil {
-				log.LogErr(filePath + " no longer exists. Using default response.")
-				defaultResponse(w, req)
-				return
-			}
-
-			log.LogInfo("Got request (" + req.Proto + ") from " + req.RemoteAddr + " for " + req.RequestURI)
-			http.ServeFile(w, req, filePath)
-		})
-
-		return nil
-	})
+	server, err := server.NewServer(opts, &log)
 
 	if err != nil {
-		panic(err)
-	}
-
-	_, errCert := os.Stat(certPath)
-	_, errKey := os.Stat(keyPath)
-
-	if errCert != nil || errKey != nil {
-		log.LogWarn("Could not find certificate or keys. HTTPS will not be supported.")
-		err := http.ListenAndServe(":80", nil)
 		log.LogErr(err.Error())
-		return
+		os.Exit(1)
 	}
 
-	go http.ListenAndServe(":80", nil)
-	errHttps := http.ListenAndServeTLS(":443", certPath, keyPath, nil)
-	log.LogErr(errHttps.Error())
+	log.LogErr(server.Start().Error())
+	os.Exit(1)
 }
