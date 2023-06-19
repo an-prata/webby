@@ -9,3 +9,6 @@ yay -S webby-git
 
 ## webby.service
 In the root of this repo there is a unit file names `webby.service`. If you install the AUR package this gets moved to `/usr/lib/systemd/system/`. If you do not install from the AUR you should move this file to `/etc/systemd/system/`, see https://wiki.archlinux.org/title/systemd#Writing_unit_files.
+
+## Configuring
+Basic configuration can be done with the `/etc/webby/config.json` file. If this file is absent `webby` will use a default configuration. The default configuration is located at the root of this repo and will be auto populated upon an AUR installation.
