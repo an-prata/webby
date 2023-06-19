@@ -13,11 +13,6 @@ import (
 	"github.com/an-prata/webby/server"
 )
 
-const serverPath = "/srv/webby"
-const sitePath = serverPath + "/website"
-const certPath = serverPath + "/cert.pem"
-const keyPath = serverPath + "/key.pem"
-
 func defaultResponse(w http.ResponseWriter, req *http.Request) {
 	io.WriteString(w, "Page not found...\n")
 }
@@ -29,8 +24,11 @@ func main() {
 		panic(err)
 	}
 
-	opts := server.ServerOptions{
-		Site: sitePath, Cert: "", Key: "", Port: 8080,
+	opts, err := server.LoadConfigFromPath("/etc/webby/config.json")
+
+	if err != nil {
+		log.LogErr(err.Error())
+		log.LogWarn("Using default configuration")
 	}
 
 	server, err := server.NewServer(opts, &log)

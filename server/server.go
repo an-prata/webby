@@ -22,24 +22,6 @@ type Server struct {
 	opts ServerOptions
 }
 
-type ServerOptions struct {
-	// Path to the root of the website to host. Use an empty string for default.
-	// See `server.DefaultSitePath`
-	Site string
-
-	// Path to a TLS/SSL certificate. Use an empty string for no HTTPS.
-	Cert string
-
-	// Path to a TLS/SSL private key. Use an empty string for no HTTPS.
-	Key string
-
-	// The port to host on, negative numbers and zero will utilize a default (80
-	// for HTTP and 443 for HTTPS).
-	Port int32
-
-	supportsTLS bool
-}
-
 // Creates a new server given the specified options. Will return an error if any
 // of the given paths could not be statted or if the program lacks read
 // permissions.
@@ -89,16 +71,4 @@ func (s *Server) Start() error {
 
 	return s.srv.ListenAndServe()
 
-}
-
-func (opts *ServerOptions) checkForDefaults() {
-	if opts.Site == "" {
-		opts.Site = DefaultSitePath
-	}
-
-	opts.supportsTLS = opts.Cert != "" && opts.Key != ""
-
-	if opts.Site[len(opts.Site)-1] != '/' {
-		opts.Site += "/"
-	}
 }
