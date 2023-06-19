@@ -69,7 +69,7 @@ func NewLog(print LogLevel, save LogLevel, file string) (Log, error) {
 }
 
 // Log a message at the error level.
-func (log Log) LogErr(msg string) error {
+func (log *Log) LogErr(msg string) error {
 	now := time.Now().Format(time.UnixDate)
 
 	if log.Printing&Err == Err {
@@ -85,7 +85,7 @@ func (log Log) LogErr(msg string) error {
 }
 
 // Log a message at the warning level.
-func (log Log) LogWarn(msg string) error {
+func (log *Log) LogWarn(msg string) error {
 	now := time.Now().Format(time.UnixDate)
 
 	if log.Printing&Warn == Warn {
@@ -101,7 +101,7 @@ func (log Log) LogWarn(msg string) error {
 }
 
 // Log a message at the info level.
-func (log Log) LogInfo(msg string) error {
+func (log *Log) LogInfo(msg string) error {
 	now := time.Now().Format(time.UnixDate)
 
 	if log.Printing&Info == Info {
@@ -118,7 +118,7 @@ func (log Log) LogInfo(msg string) error {
 
 // Closes the log file, if no file was opened when creating the log then this
 // function will simply return no error.
-func (log Log) Close() error {
+func (log *Log) Close() error {
 	if log.file == nil {
 		return nil
 	}
