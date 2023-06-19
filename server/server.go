@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/an-prata/webby/logger"
@@ -31,6 +32,10 @@ type ServerOptions struct {
 
 	// Path to a TLS/SSL private key. Use an empty string for no HTTPS.
 	Key string
+
+	// The port to host on, negative numbers and zero will utilize a default (80
+	// for HTTP and 443 for HTTPS).
+	Port int32
 
 	supportsTLS bool
 }
@@ -56,10 +61,19 @@ func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 		}
 	}
 
+	var port string
+
+	if opts.Port > 0 {
+		port = ":" + strconv.FormatInt(int64(opts.Port), 10)
+	} else {
+		port = ""
+	}
+
 	handler := NewHandler(log)
 	handler.MapDir(opts.Site)
 
 	httpSrv := http.Server{
+		Addr:              port,
 		Handler:           handler,
 		ReadHeaderTimeout: time.Minute,
 		WriteTimeout:      time.Minute,

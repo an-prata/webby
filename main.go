@@ -30,7 +30,7 @@ func main() {
 	}
 
 	opts := server.ServerOptions{
-		Site: sitePath, Cert: "", Key: "",
+		Site: sitePath, Cert: "", Key: "", Port: 8080,
 	}
 
 	server, err := server.NewServer(opts, &log)
