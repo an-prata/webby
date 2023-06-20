@@ -136,5 +136,13 @@ func (log *Log) Close() error {
 		return nil
 	}
 
-	return log.file.Close()
+	if log.file.Sync() != nil {
+		return errors.New("Failed to sync log file")
+	}
+
+	if log.file.Close() != nil {
+		return errors.New("Failed to close log file")
+	}
+
+	return nil
 }
