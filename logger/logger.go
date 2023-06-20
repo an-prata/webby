@@ -5,6 +5,7 @@
 package logger
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -66,6 +67,18 @@ func NewLog(print LogLevel, save LogLevel, file string) (Log, error) {
 	}
 
 	return log, err
+}
+
+// Creates a new file or truncates it at the given path.
+func (log *Log) OpenFile(path string) error {
+	file, err := os.Create(path)
+
+	if err != nil {
+		return errors.New("Could not open new log file")
+	}
+
+	log.file = file
+	return nil
 }
 
 // Log a message at the error level.
