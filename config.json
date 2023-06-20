@@ -2,5 +2,8 @@
 	"Site": "/srv/webby/website",
 	"Cert": "",
 	"Key": "",
-	"Port": -1
+	"Port": -1,
+	"Log": "/srv/webby/webby.log",
+	"LogLevelPrint": 7,
+	"LogLevelRecord": 7
 }
