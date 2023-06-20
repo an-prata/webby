@@ -69,7 +69,7 @@ func DefaultOptions() ServerOptions {
 		Cert:           "",
 		Key:            "",
 		Port:           -1,
-		Log:            "",
+		Log:            "/srv/webby/webby.log",
 		LogLevelPrint:  logger.All,
 		LogLevelRecord: logger.All,
 	}
