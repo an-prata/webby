@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+
+	"github.com/an-prata/webby/logger"
 )
 
 type ServerOptions struct {
@@ -24,6 +26,17 @@ type ServerOptions struct {
 	// The port to host on, negative numbers and zero will utilize a default (80
 	// for HTTP and 443 for HTTPS).
 	Port int32
+
+	// Path to a file for logging. Use an empty string for no log file.
+	Log string
+
+	// Log level for printing to standard out. See `LogLevel` bitfields. If an
+	// unexpected value is given then the `All` level is assumed.
+	LogLevelPrint logger.LogLevel
+
+	// Log level for writing to file out. See `LogLevel` bitfields. If an
+	// unexpected value is given then the `All` level is assumed.
+	LogLevelRecord logger.LogLevel
 
 	supportsTLS bool
 }
@@ -52,10 +65,13 @@ func LoadConfigFromPath(path string) (ServerOptions, error) {
 
 func DefaultOptions() ServerOptions {
 	return ServerOptions{
-		Site: "/srv/webby/website",
-		Cert: "",
-		Key:  "",
-		Port: -1,
+		Site:           "/srv/webby/website",
+		Cert:           "",
+		Key:            "",
+		Port:           -1,
+		Log:            "",
+		LogLevelPrint:  logger.All,
+		LogLevelRecord: logger.All,
 	}
 }
 
