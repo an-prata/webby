@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-
-	"github.com/an-prata/webby/logger"
 )
 
 type ServerOptions struct {
@@ -30,13 +28,13 @@ type ServerOptions struct {
 	// Path to a file for logging. Use an empty string for no log file.
 	Log string
 
-	// Log level for printing to standard out. See `LogLevel` bitfields. If an
-	// unexpected value is given then the `All` level is assumed.
-	LogLevelPrint logger.LogLevel
+	// Log level for printing to standard out. Can be "All", "None", "Error",
+	// "Warning", or "Info".
+	LogLevelPrint string
 
-	// Log level for writing to file out. See `LogLevel` bitfields. If an
-	// unexpected value is given then the `All` level is assumed.
-	LogLevelRecord logger.LogLevel
+	// Log level for writing to file out. Can be "All", "None", "Error", "Warning",
+	// or "Info".
+	LogLevelRecord string
 
 	supportsTLS bool
 }
@@ -70,8 +68,8 @@ func DefaultOptions() ServerOptions {
 		Key:            "",
 		Port:           -1,
 		Log:            "/srv/webby/webby.log",
-		LogLevelPrint:  logger.All,
-		LogLevelRecord: logger.All,
+		LogLevelPrint:  "all",
+		LogLevelRecord: "all",
 	}
 }
 

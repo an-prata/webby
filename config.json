@@ -4,6 +4,6 @@
 	"Key": "",
 	"Port": -1,
 	"Log": "/srv/webby/webby.log",
-	"LogLevelPrint": 7,
-	"LogLevelRecord": 7
+	"LogLevelPrint": "All",
+	"LogLevelRecord": "All"
 }

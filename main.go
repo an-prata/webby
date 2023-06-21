@@ -40,19 +40,22 @@ func main() {
 		}
 	}
 
-	if opts.LogLevelPrint > logger.All || opts.LogLevelPrint < 0 {
-		log.LogErr("Unexpected log level for printing, using 'All'")
-		opts.LogLevelPrint = logger.All
-	} else {
-		log.Printing = opts.LogLevelPrint
+	printing, err := logger.LevelFromString(opts.LogLevelPrint)
+
+	if err != nil {
+		log.LogErr(err.Error())
+		log.LogWarn("Using log level 'All' due to errors for printing")
 	}
 
-	if opts.LogLevelRecord > logger.All || opts.LogLevelRecord < 0 {
-		log.LogErr("Unexpected log level for recording, using 'All'")
-		opts.LogLevelRecord = logger.All
-	} else {
-		log.Saving = opts.LogLevelRecord
+	recording, err := logger.LevelFromString(opts.LogLevelRecord)
+
+	if err != nil {
+		log.LogErr(err.Error())
+		log.LogWarn("Using log level 'All' due to errors for recording")
 	}
+
+	log.Printing = printing
+	log.Saving = recording
 
 	server, err := server.NewServer(opts, &log)
 

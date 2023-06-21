@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -49,6 +50,26 @@ type Log struct {
 
 	// Pointer to a file for saving log messages, may be nil.
 	file *os.File
+}
+
+// Produces a log level from a string. The string is not cap-sensitive and must
+// be one of "error", "warning", or "info". Some alternative strings will also
+// be accepted, such as "err", "war", and "inf" as well as the first character
+// of each, "e", "w", and "i". "all" and "none" are accepted as a special case.
+// Returns the log level `All` on error.
+func LevelFromString(str string) (LogLevel, error) {
+	switch strings.ToLower(str) {
+	case "none", "n":
+		return None, nil
+	case "errors", "error", "err", "e":
+		return Err, nil
+	case "warnings", "warning", "warn", "war", "w":
+		return Err | Warn, nil
+	case "information", "info", "inf", "i", "all", "a":
+		return Err | Warn | Info, nil
+	}
+
+	return All, errors.New("Could not parse log level string")
 }
 
 // Creates a new log, passing an empty string will create a log with no file and
