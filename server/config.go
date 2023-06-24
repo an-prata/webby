@@ -36,6 +36,11 @@ type ServerOptions struct {
 	// or "Info".
 	LogLevelRecord string
 
+	// Paths that should be granted a dead response, can be used for fucking with
+	// bot probing or the like. A dead response is just the name I gave to
+	// redirecting a request back onto the client for the same path.
+	DeadPaths []string
+
 	supportsTLS bool
 }
 
@@ -70,6 +75,7 @@ func DefaultOptions() ServerOptions {
 		Log:            "/srv/webby/webby.log",
 		LogLevelPrint:  "all",
 		LogLevelRecord: "all",
+		DeadPaths:      []string{},
 	}
 }
 

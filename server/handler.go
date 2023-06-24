@@ -21,6 +21,10 @@ type Handler struct {
 	log        *logger.Log
 }
 
+type CustomHandler struct {
+	Handler func(http.ResponseWriter, *http.Request)
+}
+
 func NewHandler(log *logger.Log) *Handler {
 	return &Handler{
 		map[string]string{},
@@ -42,6 +46,8 @@ func (h *Handler) MapFile(uriPath, filePath string) error {
 	return nil
 }
 
+// Map a directory and all subdirectories to paths on the server. All directory
+// roots, when requested, will serve an "index.html" file from that directory.
 func (h *Handler) MapDir(dirPath string) error {
 	err := filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
 		if _, err := os.Stat(path); err != nil {
@@ -69,6 +75,22 @@ func (h *Handler) MapDir(dirPath string) error {
 	return nil
 }
 
+// For each path given a response that redirects the client to the same path but
+// on itself (e.g. "http://localhost/some/dead/path") will be given.
+func (h *Handler) AddDeadResponses(paths []string) {
+	deadHandle := CustomHandler{
+		Handler: func(w http.ResponseWriter, req *http.Request) {
+			h.log.LogInfo("Dead responding to request from '" + req.RemoteAddr + "'")
+			http.Redirect(w, req, "http://localhost/", http.StatusMovedPermanently)
+		},
+	}
+
+	for _, path := range paths {
+		h.log.LogInfo("Mapping URI '" + path + "' to a dead response.")
+		h.handlerMap[path] = deadHandle
+	}
+}
+
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	h.log.LogInfo("Got request (" + req.Proto + ") from " + req.RemoteAddr + " for " + req.URL.Path)
 	file, ok := h.pathMap[req.URL.Path]
@@ -77,6 +99,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		if _, err := os.Stat(file); err != nil {
 			h.log.LogErr("A request was made for '" + file + "' but stat failed")
 		}
+
 		http.ServeFile(w, req, file)
 		return
 	}
@@ -87,4 +110,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(w, req)
 		return
 	}
+}
+
+func (h CustomHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	h.Handler(w, req)
 }
