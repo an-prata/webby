@@ -53,7 +53,7 @@ func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 
 	handler := NewHandler(log)
 	handler.MapDir(opts.Site)
-	handler.AddDeadHandles(opts.DeadPaths)
+	handler.AddDeadResponses(opts.DeadPaths)
 
 	httpSrv := http.Server{
 		Addr:              port,
