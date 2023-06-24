@@ -1,5 +1,5 @@
 # webby
-Web server with some logging and whatever else I end up adding. To use just put all your website into the `/srv/webby/website` directory, for each directory located within if it contains an `index.html` file that will be served for requests to the directory, e.g. `https://an-prata.it/` serves the file `/srv/webby/website/index.html`. For serving HTTPS requests you can add paths to your certificate and key files in the config.
+Web server with some logging and whatever else I end up adding. To use just put all your website into the `/srv/webby/website` directory, for each directory located within if it contains an `index.html` file that will be served for requests to the directory, e.g. `https://an-prata.it/` serves the file `/srv/webby/website/index.html`. For serving HTTPS requests you can add paths to your certificate and key files in the config. I also added this funny thing I'm calling dead responses, I was getting a couple bot probing requests on my server and thought it would be funny to redirect those requests back onto the client requesting them. This way on the slim chance they're vulnrable to their own attack they might just shoot themselves in the foot :D.
 
 ## Installing
 I maintain an AUR package for webby:
