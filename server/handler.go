@@ -78,16 +78,18 @@ func (h *Handler) MapDir(dirPath string) error {
 // For each path given a response that redirects the client to the same path but
 // on itself (e.g. "http://localhost/some/dead/path") will be given.
 func (h *Handler) AddDeadResponses(paths []string) {
-	deadHandle := CustomHandler{
-		Handler: func(w http.ResponseWriter, req *http.Request) {
-			h.log.LogInfo("Dead responding to request from '" + req.RemoteAddr + "'")
-			http.Redirect(w, req, "http://localhost/", http.StatusMovedPermanently)
-		},
-	}
-
 	for _, path := range paths {
+		if len(path) > 0 || path[0] != '/' {
+			path = "/" + path
+		}
+
 		h.log.LogInfo("Mapping URI '" + path + "' to a dead response.")
-		h.handlerMap[path] = deadHandle
+		h.handlerMap[path] = CustomHandler{
+			Handler: func(w http.ResponseWriter, req *http.Request) {
+				h.log.LogInfo("Dead responding to request from '" + req.RemoteAddr + "'")
+				http.Redirect(w, req, "http://localhost/"+path, http.StatusMovedPermanently)
+			},
+		}
 	}
 }
 
