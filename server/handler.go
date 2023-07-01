@@ -15,16 +15,21 @@ import (
 	"github.com/an-prata/webby/logger"
 )
 
+// Responsible for handling HTTP requests with one of a static file, or custom
+// response from a custom handler, prioritized in that order.
 type Handler struct {
 	pathMap    map[string]string
 	handlerMap map[string]http.Handler
 	log        *logger.Log
 }
 
+// A custom handler that may respond with special or dynamic data rather than a
+// static file.
 type CustomHandler struct {
 	Handler func(http.ResponseWriter, *http.Request)
 }
 
+// Creates a new handler that will log messages to the given log.
 func NewHandler(log *logger.Log) *Handler {
 	return &Handler{
 		map[string]string{},
