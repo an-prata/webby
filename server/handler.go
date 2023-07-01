@@ -117,6 +117,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(w, req)
 		return
 	}
+
+	// No file nor special handler for requested path.
+	http.NotFound(w, req)
 }
 
 func (h CustomHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
