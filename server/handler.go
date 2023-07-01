@@ -43,6 +43,11 @@ func (h *Handler) MapFile(uriPath, filePath string) error {
 
 	h.log.LogInfo("Mapped URI '" + uriPath + "' to file '" + filePath + "'")
 	h.pathMap[uriPath] = filePath
+
+	if strings.Contains(uriPath, "..") {
+		h.log.LogWarn("Mapped file using '..', this may add security vulnerabilities")
+	}
+
 	return nil
 }
 
