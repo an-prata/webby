@@ -40,8 +40,6 @@ type ServerOptions struct {
 	// bot probing or the like. A dead response is just the name I gave to
 	// redirecting a request back onto the client for the same path.
 	DeadPaths []string
-
-	supportsTLS bool
 }
 
 // Tries to parse JSON for a `ServerOptions` with the file at the given path.
@@ -79,14 +77,17 @@ func DefaultOptions() ServerOptions {
 	}
 }
 
+// Replaces appropriate fields with default values.
 func (opts *ServerOptions) checkForDefaults() {
 	if opts.Site == "" {
 		opts.Site = DefaultSitePath
 	}
 
-	opts.supportsTLS = opts.Cert != "" && opts.Key != ""
-
 	if opts.Site[len(opts.Site)-1] != '/' {
 		opts.Site += "/"
 	}
+}
+
+func (opts *ServerOptions) supportsTLS() bool {
+	return opts.Cert != "" && opts.Key != ""
 }
