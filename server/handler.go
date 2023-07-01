@@ -15,8 +15,8 @@ import (
 	"github.com/an-prata/webby/logger"
 )
 
-// Responsible for handling HTTP requests with one of a static file, or custom
-// response from a custom handler, prioritized in that order.
+// Responsible for handling HTTP requests with one of a custom response from a
+// custom handler, or a static file, prioritized in that order.
 type Handler struct {
 	pathMap    map[string]string
 	handlerMap map[string]http.Handler
@@ -86,7 +86,10 @@ func (h *Handler) MapDir(dirPath string) error {
 }
 
 // For each path given a response that redirects the client to the same path but
-// on itself (e.g. "http://localhost/some/dead/path") will be given.
+// on itself (e.g. "http://localhost/some/dead/path") will be given. This
+// creates a custom handler, adding another custom handler will override this
+// dead response. If a file is mapped to the same path as this dead response
+// then, like other custom handlers, the dead response takes priority.
 func (h *Handler) AddDeadResponses(paths []string) {
 	for _, path := range paths {
 		if len(path) > 0 || path[0] != '/' {
@@ -105,6 +108,18 @@ func (h *Handler) AddDeadResponses(paths []string) {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	h.log.LogInfo("Got request (" + req.Proto + ") from " + req.RemoteAddr + " for " + req.URL.Path)
+
+	if strings.Contains(req.URL.Path, "..") {
+		h.log.LogWarn("Request was made to a path containing '..' by " + req.RemoteAddr)
+	}
+
+	handler, ok := h.handlerMap[req.URL.Path]
+
+	if ok {
+		handler.ServeHTTP(w, req)
+		return
+	}
+
 	file, ok := h.pathMap[req.URL.Path]
 
 	if ok {
@@ -113,13 +128,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		http.ServeFile(w, req, file)
-		return
-	}
-
-	handler, ok := h.handlerMap[req.URL.Path]
-
-	if ok {
-		handler.ServeHTTP(w, req)
 		return
 	}
 
