@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/an-prata/webby/daemon"
 	"github.com/an-prata/webby/logger"
 	"github.com/an-prata/webby/server"
 )
