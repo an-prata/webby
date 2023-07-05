@@ -39,7 +39,8 @@ type DaemonListener struct {
 }
 
 // Creates a new Unix Domain Socket and returns a pointer to a listener for
-// application commands and requests on that socket.
+// application commands and requests on that socket. When the listener is
+// started all commands will be executed according to the given callbacks.
 func NewDaemonListener(callbacks map[DaemonCommand]func(DaemonCommandArg) error, log logger.Log) (DaemonListener, error) {
 	socket, err := net.Listen("unix", SOCKET_PATH)
 	return DaemonListener{socket, callbacks, log}, err
@@ -69,7 +70,13 @@ func (daemon *DaemonListener) handleConnection(connection net.Conn) {
 		return
 	}
 
-	err = daemon.callbacks[DaemonCommand(buf[:n-1])](DaemonCommandArg(buf[n-1]))
+	fn, ok := daemon.callbacks[DaemonCommand(buf[:n-1])]
+
+	if !ok {
+		daemon.log.LogErr("No callback for requested daemon command " + string(buf[:n-1]))
+	}
+
+	err = fn(DaemonCommandArg(buf[n-1]))
 
 	if err != nil {
 		daemon.log.LogErr((fmt.Sprintf("failed to respond to command: %s %d", string(buf[:n-1]), uint8(buf[n-1]))))
