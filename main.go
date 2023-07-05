@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/an-prata/webby/daemon"
 	"github.com/an-prata/webby/logger"
 	"github.com/an-prata/webby/server"
 )
@@ -64,6 +65,46 @@ func main() {
 		return
 	}
 
-	log.LogErr(server.Start().Error())
-	return
+	commandListener, err := daemon.NewDaemonListener(map[daemon.DaemonCommand]func(daemon.DaemonCommandArg) error{
+		daemon.RESTART: func(_ daemon.DaemonCommandArg) error {
+			// When the `Server.Start()` function returns it is automatically called
+			// again in a loop.
+			return server.Stop()
+		},
+
+		daemon.LOG_RECORD: func(arg daemon.DaemonCommandArg) error {
+			logLevel := logger.LogLevel(arg)
+			logLevel, err := logger.CheckLogLevel(uint8(logLevel))
+
+			if err != nil {
+				log.LogWarn("invalid log level given, using 'All'")
+			}
+
+			log.Saving = logLevel
+			return nil
+		},
+
+		daemon.LOG_PRINT: func(arg daemon.DaemonCommandArg) error {
+			logLevel := logger.LogLevel(arg)
+			logLevel, err := logger.CheckLogLevel(uint8(logLevel))
+
+			if err != nil {
+				log.LogWarn("invalid log level given, using 'All'")
+			}
+
+			log.Printing = logLevel
+			return nil
+		},
+	}, log)
+
+	if err != nil {
+		log.LogErr("Could not open Unix Domain Socket")
+	} else {
+		go commandListener.Listen()
+	}
+
+	for {
+		// Will restart the server on close.
+		log.LogErr(server.Start().Error())
+	}
 }
