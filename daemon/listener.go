@@ -17,7 +17,7 @@ type DaemonCommand string
 
 const (
 	NONE       DaemonCommand = ""
-	RESCAN                   = "rescan"
+	RESTART                  = "restart"
 	LOG_RECORD               = "log-record"
 	LOG_PRINT                = "log-print"
 )
@@ -82,18 +82,18 @@ func (daemon *DaemonListener) Listen(log logger.Log) error {
 				return
 			}
 
-			if bytes.Equal(buf[:n], []byte(RESCAN)) {
+			if bytes.Equal(buf[:n], []byte(RESTART)) {
 				err = daemon.rescanCallback.Rescan()
 
 				if err != nil {
-					log.LogErr("failed to rescan")
+					log.LogErr("failed to restart")
 					_, err = connection.Write([]byte{byte(FAILURE)})
 				} else {
 					_, err = connection.Write([]byte{byte(SUCCESS)})
 				}
 
 				if err != nil {
-					log.LogErr("failed to reply to rescan command")
+					log.LogErr("failed to reply to restart command")
 				}
 			}
 
