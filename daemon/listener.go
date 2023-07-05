@@ -11,15 +11,16 @@ import (
 	"github.com/an-prata/webby/logger"
 )
 
-const SOCKET_PATH = "/run/webby.sock"
+const SocketPath = "/run/webby.sock"
 
 type DaemonCommand string
 
 const (
-	NONE       DaemonCommand = ""
-	RESTART                  = "restart"
-	LOG_RECORD               = "log-record"
-	LOG_PRINT                = "log-print"
+	// The `None` variant here shouldn't really be used.
+	None      DaemonCommand = ""
+	Restart                 = "restart"
+	LogRecord               = "log-record"
+	LogPrint                = "log-print"
 )
 
 type DaemonCommandArg uint8
@@ -27,8 +28,8 @@ type DaemonCommandArg uint8
 type DaemonCommandSuccess uint8
 
 const (
-	SUCCESS DaemonCommandSuccess = iota
-	FAILURE
+	Success DaemonCommandSuccess = iota
+	Failure
 )
 
 type DaemonListener struct {
@@ -42,7 +43,7 @@ type DaemonListener struct {
 // application commands and requests on that socket. When the listener is
 // started all commands will be executed according to the given callbacks.
 func NewDaemonListener(callbacks map[DaemonCommand]func(DaemonCommandArg) error, log logger.Log) (DaemonListener, error) {
-	socket, err := net.Listen("unix", SOCKET_PATH)
+	socket, err := net.Listen("unix", SocketPath)
 	return DaemonListener{socket, callbacks, log}, err
 }
 
@@ -80,8 +81,8 @@ func (daemon *DaemonListener) handleConnection(connection net.Conn) {
 
 	if err != nil {
 		daemon.log.LogErr((fmt.Sprintf("failed to respond to command: %s %d", string(buf[:n-1]), uint8(buf[n-1]))))
-		connection.Write([]byte{byte(FAILURE)})
+		connection.Write([]byte{byte(Failure)})
 	} else {
-		connection.Write([]byte{byte(SUCCESS)})
+		connection.Write([]byte{byte(Success)})
 	}
 }

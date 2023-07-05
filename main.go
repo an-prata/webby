@@ -66,13 +66,13 @@ func main() {
 	}
 
 	commandListener, err := daemon.NewDaemonListener(map[daemon.DaemonCommand]func(daemon.DaemonCommandArg) error{
-		daemon.RESTART: func(_ daemon.DaemonCommandArg) error {
+		daemon.Restart: func(_ daemon.DaemonCommandArg) error {
 			// When the `Server.Start()` function returns it is automatically called
 			// again in a loop.
 			return server.Stop()
 		},
 
-		daemon.LOG_RECORD: func(arg daemon.DaemonCommandArg) error {
+		daemon.LogRecord: func(arg daemon.DaemonCommandArg) error {
 			logLevel := logger.LogLevel(arg)
 			logLevel, err := logger.CheckLogLevel(uint8(logLevel))
 
@@ -84,7 +84,7 @@ func main() {
 			return nil
 		},
 
-		daemon.LOG_PRINT: func(arg daemon.DaemonCommandArg) error {
+		daemon.LogPrint: func(arg daemon.DaemonCommandArg) error {
 			logLevel := logger.LogLevel(arg)
 			logLevel, err := logger.CheckLogLevel(uint8(logLevel))
 
