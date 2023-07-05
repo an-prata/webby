@@ -83,7 +83,8 @@ func CheckLogLevel(level uint8) (LogLevel, error) {
 }
 
 // Creates a new log, passing an empty string will create a log with no file and
-// will only print messages.
+// will only print messages. This function will never error if the given file
+// path is empty.
 func NewLog(print LogLevel, save LogLevel, file string) (Log, error) {
 	log := Log{print, save, nil}
 
