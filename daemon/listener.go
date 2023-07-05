@@ -5,7 +5,7 @@
 package daemon
 
 import (
-	"bytes"
+	"fmt"
 	"net"
 
 	"github.com/an-prata/webby/logger"
@@ -29,105 +29,50 @@ const (
 	FAILURE
 )
 
-type RescanCallback interface {
-	Rescan() error
-}
-
-type LogRecordCallback interface {
-	LogRecord(logger.LogLevel) error
-}
-
-type LogPrintCallback interface {
-	LogPrint(logger.LogLevel) error
-}
-
 type DaemonListener struct {
 	// The Unix socket by which to listen for incoming commands/requests.
-	socket net.Listener
-
-	rescanCallback    RescanCallback
-	logRecordCallback LogRecordCallback
-	logPrintCallback  LogPrintCallback
+	socket    net.Listener
+	callbacks map[DaemonCommand]func(uint8) error
+	log       logger.Log
 }
 
 // Creates a new Unix Domain Socket and returns a pointer to a listener for
 // application commands and requests on that socket.
-func NewDaemonListener(rescan RescanCallback, logRecord LogRecordCallback, logPrint LogPrintCallback) (*DaemonListener, error) {
+func NewDaemonListener(callbacks map[DaemonCommand]func(uint8) error, log logger.Log) (DaemonListener, error) {
 	socket, err := net.Listen("unix", SOCKET_PATH)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &DaemonListener{socket, rescan, logRecord, logPrint}, nil
+	return DaemonListener{socket, callbacks, log}, err
 }
 
-func (daemon *DaemonListener) Listen(log logger.Log) error {
+func (daemon *DaemonListener) Listen() error {
 	for {
 		connection, err := daemon.socket.Accept()
 
 		if err != nil {
-			log.LogErr("failed to accept daemon connection")
+			daemon.log.LogErr("failed to accept daemon connection")
 			return err
 		}
 
-		go func(connection net.Conn) {
-			defer connection.Close()
+		go daemon.handleConnection(connection)
+	}
+}
 
-			var buf [526]byte
-			n, err := connection.Read(buf[:])
+func (daemon *DaemonListener) handleConnection(connection net.Conn) {
+	defer connection.Close()
 
-			if err != nil {
-				log.LogErr("could not read from daemon connection")
-				return
-			}
+	var buf [526]byte
+	n, err := connection.Read(buf[:])
 
-			if bytes.Equal(buf[:n], []byte(RESTART)) {
-				err = daemon.rescanCallback.Rescan()
+	if err != nil {
+		daemon.log.LogErr("could not read from daemon connection")
+		return
+	}
 
-				if err != nil {
-					log.LogErr("failed to restart")
-					_, err = connection.Write([]byte{byte(FAILURE)})
-				} else {
-					_, err = connection.Write([]byte{byte(SUCCESS)})
-				}
+	err = daemon.callbacks[DaemonCommand(buf[:n-1])](buf[n-1])
 
-				if err != nil {
-					log.LogErr("failed to reply to restart command")
-				}
-			}
-
-			if bytes.Equal(buf[:n-1], []byte(LOG_RECORD)[:]) {
-				// Use the last byte as log level
-				err = daemon.logRecordCallback.LogRecord(logger.LogLevel(buf[n-1]))
-
-				if err != nil {
-					log.LogErr("failed to set log record level")
-					_, err = connection.Write([]byte{byte(FAILURE)})
-				} else {
-					_, err = connection.Write([]byte{byte(SUCCESS)})
-				}
-
-				if err != nil {
-					log.LogErr("failed to reply to log recording level set")
-				}
-			}
-
-			if bytes.Equal(buf[:n-1], []byte(LOG_PRINT)) {
-				// Use the last byte as log level
-				err = daemon.logPrintCallback.LogPrint(logger.LogLevel(buf[n-1]))
-
-				if err != nil {
-					log.LogErr("failed to set log printing level")
-					_, err = connection.Write([]byte{byte(FAILURE)})
-				} else {
-					_, err = connection.Write([]byte{byte(SUCCESS)})
-				}
-
-				if err != nil {
-					log.LogErr("failed to reply to log printing level set")
-				}
-			}
-		}(connection)
+	if err != nil {
+		daemon.log.LogErr((fmt.Sprintf("failed to respond to command: %s %d", string(buf[:n-1]), uint8(buf[n-1]))))
+		connection.Write([]byte{byte(FAILURE)})
+	} else {
+		connection.Write([]byte{byte(SUCCESS)})
 	}
 }
