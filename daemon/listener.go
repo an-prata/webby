@@ -7,6 +7,8 @@ package daemon
 import (
 	"fmt"
 	"net"
+	"os"
+	"sync"
 
 	"github.com/an-prata/webby/logger"
 )
@@ -63,6 +65,11 @@ type DaemonListener struct {
 	// should be everything up to that.
 	callbacks map[DaemonCommand]func(DaemonCommandArg) error
 
+	shuttingOff bool
+
+	// Channel for blocking the `Close()` function to prevent bad memory access.
+	shuttoffChannel chan bool
+
 	// Webby log.
 	log logger.Log
 }
@@ -71,35 +78,59 @@ type DaemonListener struct {
 // application commands and requests on that socket. When the listener is
 // started all commands will be executed according to the given callbacks.
 func NewDaemonListener(callbacks map[DaemonCommand]func(DaemonCommandArg) error, log logger.Log) (DaemonListener, error) {
+	os.Remove(SocketPath)
 	socket, err := net.Listen("unix", SocketPath)
-	return DaemonListener{socket, callbacks, log}, err
+	shutoffChannel := make(chan bool, 1)
+	return DaemonListener{socket, callbacks, false, shutoffChannel, log}, err
 }
 
 // Starts listening for connections on the Unix Domain Socket. Each connection
 // will be able to run one command and will be responded to with a
 // `DaemonCommandSuccess` value.
 func (daemon *DaemonListener) Listen() error {
+	var wg sync.WaitGroup
+
 	for {
 		connection, err := daemon.socket.Accept()
 
-		if err != nil {
-			daemon.log.LogErr("failed to accept daemon connection")
+		if err != nil && !daemon.shuttingOff {
+			daemon.log.LogErr("Failed to accept daemon connection")
 			return err
+		} else if daemon.shuttingOff {
+			break
 		}
 
-		go daemon.handleConnection(connection)
+		wg.Add(1)
+		go daemon.handleConnection(connection, &wg)
 	}
+
+	daemon.log.LogInfo("Waiting for connections to close...")
+	wg.Wait()
+	daemon.shuttoffChannel <- true
+	return nil
+}
+
+// Closes the backing Unix Domain Socket. After calling this function no other
+// calls should be made to this struct's functions.
+func (daemon *DaemonListener) Close() error {
+	daemon.shuttingOff = true
+	// _ = <-daemon.shuttoffChannel
+	if daemon.socket == nil {
+		daemon.log.LogErr("socket was nil")
+	}
+	return daemon.socket.Close()
 }
 
 // Handles an individual connection from the Unix Domain Socket.
-func (daemon *DaemonListener) handleConnection(connection net.Conn) {
+func (daemon *DaemonListener) handleConnection(connection net.Conn, wg *sync.WaitGroup) {
 	defer connection.Close()
+	defer wg.Done()
 
 	var buf [526]byte
 	n, err := connection.Read(buf[:])
 
 	if err != nil {
-		daemon.log.LogErr("could not read from daemon connection")
+		daemon.log.LogErr("Could not read from daemon connection")
 		return
 	}
 
@@ -112,7 +143,7 @@ func (daemon *DaemonListener) handleConnection(connection net.Conn) {
 	err = fn(DaemonCommandArg(buf[n-1]))
 
 	if err != nil {
-		daemon.log.LogErr((fmt.Sprintf("failed to respond to command: %s %d", string(buf[:n-1]), uint8(buf[n-1]))))
+		daemon.log.LogErr((fmt.Sprintf("Failed to respond to command: %s %d", string(buf[:n-1]), uint8(buf[n-1]))))
 		connection.Write([]byte{byte(Failure)})
 	} else {
 		connection.Write([]byte{byte(Success)})
