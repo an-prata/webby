@@ -92,11 +92,11 @@ func (h *Handler) MapDir(dirPath string) error {
 // then, like other custom handlers, the dead response takes priority.
 func (h *Handler) AddDeadResponses(paths []string) {
 	for _, path := range paths {
-		if len(path) > 0 || path[0] != '/' {
+		if len(path) > 0 && path[0] != '/' {
 			path = "/" + path
 		}
 
-		h.log.LogInfo("Mapping URI '" + path + "' to a dead response.")
+		h.log.LogInfo("Mapped URI '" + path + "' to a dead response.")
 		h.handlerMap[path] = CustomHandler{
 			Handler: func(w http.ResponseWriter, req *http.Request) {
 				h.log.LogInfo("Dead responding to request from '" + req.RemoteAddr + "'")
