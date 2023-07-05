@@ -1,6 +1,6 @@
 [Unit]
 Description=webby
 [Service]
-ExecStart=/usr/bin/webby
+ExecStart=/usr/bin/webby -daemon
 [Install]
 WantedBy=multi-user.target
