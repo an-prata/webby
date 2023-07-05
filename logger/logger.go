@@ -13,7 +13,7 @@ import (
 )
 
 // Holds bit fields representing the different items to show in a log.
-type LogLevel byte
+type LogLevel uint8
 
 const (
 	// Show no logs.
@@ -70,6 +70,16 @@ func LevelFromString(str string) (LogLevel, error) {
 	}
 
 	return All, errors.New("Could not parse log level string")
+}
+
+// Checks the given uint8 for validity as a log level. If it is invalid an error
+// is returned with the All log level.
+func CheckLogLevel(level uint8) (LogLevel, error) {
+	if level > uint8(All) {
+		return All, errors.New("Invalid log level")
+	}
+
+	return LogLevel(level), nil
 }
 
 // Creates a new log, passing an empty string will create a log with no file and
