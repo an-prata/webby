@@ -73,3 +73,7 @@ func (s *Server) Start() error {
 	return s.srv.ListenAndServe()
 
 }
+
+func (s *Server) Stop() error {
+	return s.srv.Close()
+}
