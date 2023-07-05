@@ -58,7 +58,7 @@ func main() {
 	log.Printing = printing
 	log.Saving = recording
 
-	server, err := server.NewServer(opts, &log)
+	srv, err := server.NewServer(opts, &log)
 
 	if err != nil {
 		log.LogErr(err.Error())
@@ -69,7 +69,7 @@ func main() {
 		daemon.Restart: func(_ daemon.DaemonCommandArg) error {
 			// When the `Server.Start()` function returns it is automatically called
 			// again in a loop.
-			return server.Stop()
+			return srv.Stop()
 		},
 
 		daemon.LogRecord: func(arg daemon.DaemonCommandArg) error {
@@ -105,6 +105,12 @@ func main() {
 
 	for {
 		// Will restart the server on close.
-		log.LogErr(server.Start().Error())
+		log.LogErr(srv.Start().Error())
+		srv, err = server.NewServer(opts, &log)
+
+		if err != nil {
+			log.LogErr(err.Error())
+			return
+		}
 	}
 }
