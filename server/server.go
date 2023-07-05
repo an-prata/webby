@@ -24,7 +24,7 @@ type Server struct {
 
 // Creates a new server given the specified options. Will return an error if any
 // of the given paths could not be statted or if the program lacks read
-// permissions.
+// permissions. This function will map directories from the options given.
 func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 	var err error
 	opts.checkForDefaults()
