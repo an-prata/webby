@@ -22,6 +22,13 @@ const (
 	LOG_PRINT                = "log-print"
 )
 
+type DaemonCommandSuccess uint8
+
+const (
+	SUCCESS DaemonCommandSuccess = iota
+	FAILURE
+)
+
 type RescanCallback interface {
 	Rescan() error
 }
@@ -67,7 +74,7 @@ func (daemon *DaemonListener) Listen(log logger.Log) error {
 		go func(connection net.Conn) {
 			defer connection.Close()
 
-			var buf [4096]byte
+			var buf [526]byte
 			n, err := connection.Read(buf[:])
 
 			if err != nil {
@@ -80,26 +87,44 @@ func (daemon *DaemonListener) Listen(log logger.Log) error {
 
 				if err != nil {
 					log.LogErr("failed to rescan")
-					return
+					_, err = connection.Write([]byte{byte(FAILURE)})
+				} else {
+					_, err = connection.Write([]byte{byte(SUCCESS)})
+				}
+
+				if err != nil {
+					log.LogErr("failed to reply to rescan command")
 				}
 			}
 
-			if bytes.Equal(buf[:n], []byte(LOG_RECORD)) {
-				// err = daemon.logRecordCallback.LogRecord()
+			if bytes.Equal(buf[:n-1], []byte(LOG_RECORD)[:]) {
+				err = daemon.logRecordCallback.LogRecord(logger.LogLevel(buf[n-1]))
 
-				// if err != nil {
-				// 	log.LogErr("failed to set log record level")
-				// 	return
-				// }
+				if err != nil {
+					log.LogErr("failed to set log record level")
+					_, err = connection.Write([]byte{byte(FAILURE)})
+				} else {
+					_, err = connection.Write([]byte{byte(SUCCESS)})
+				}
+
+				if err != nil {
+					log.LogErr("failed to reply to log recording level set")
+				}
 			}
 
 			if bytes.Equal(buf[:n], []byte(LOG_PRINT)) {
-				// err = daemon.logPrintCallback.LogPrint()
+				err = daemon.logPrintCallback.LogPrint(logger.LogLevel(buf[n-1]))
 
-				// if err != nil {
-				// 	log.LogErr("failed to set log print level")
-				// 	return
-				// }
+				if err != nil {
+					log.LogErr("failed to set log printing level")
+					_, err = connection.Write([]byte{byte(FAILURE)})
+				} else {
+					_, err = connection.Write([]byte{byte(SUCCESS)})
+				}
+
+				if err != nil {
+					log.LogErr("failed to reply to log printing level set")
+				}
 			}
 		}(connection)
 	}
