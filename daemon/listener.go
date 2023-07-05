@@ -98,6 +98,7 @@ func (daemon *DaemonListener) Listen(log logger.Log) error {
 			}
 
 			if bytes.Equal(buf[:n-1], []byte(LOG_RECORD)[:]) {
+				// Use the last byte as log level
 				err = daemon.logRecordCallback.LogRecord(logger.LogLevel(buf[n-1]))
 
 				if err != nil {
@@ -112,7 +113,8 @@ func (daemon *DaemonListener) Listen(log logger.Log) error {
 				}
 			}
 
-			if bytes.Equal(buf[:n], []byte(LOG_PRINT)) {
+			if bytes.Equal(buf[:n-1], []byte(LOG_PRINT)) {
+				// Use the last byte as log level
 				err = daemon.logPrintCallback.LogPrint(logger.LogLevel(buf[n-1]))
 
 				if err != nil {
