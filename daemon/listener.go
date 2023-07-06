@@ -27,6 +27,9 @@ const (
 	// been made to the website contents. Should ignore the passed in argument.
 	Restart = "restart"
 
+	// Reloads the configuration file and then restarts.
+	Reload = "reload"
+
 	// Sets the log level for recording logs to file. Should interperet its
 	// argument to be the desired log level.
 	LogRecord = "log-record"

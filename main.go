@@ -14,11 +14,13 @@ import (
 
 func main() {
 	var daemonProc bool
+	var reload bool
 	var restart bool
 	var logRecord string
 	var logPrint string
 
 	flag.BoolVar(&daemonProc, "daemon", false, "runs the webby server daemon process rather than behaving like a control application")
+	flag.BoolVar(&reload, "reload", false, "reloads the configuration file and then restarts, this will reset log levels")
 	flag.BoolVar(&restart, "restart", false, "restarts the webby HTTP server, rescanning directories")
 	flag.StringVar(&logRecord, "log-record", "", "the log level to record to file, defaults to 'All'")
 	flag.StringVar(&logPrint, "log-print", "", "the log level to print to standard out, defaults to 'All'")
@@ -80,6 +82,20 @@ func main() {
 		}
 	}
 
+	if reload {
+		log.LogInfo("Reloading config...")
+
+		var buf [1]byte
+		socket.Write(append([]byte(daemon.Reload), 0))
+		socket.Read(buf[:])
+
+		if daemon.DaemonCommandSuccess(buf[0]) != daemon.Success {
+			log.LogErr("Could not reload config")
+		}
+	}
+
+	// Restart occures last so that it may be used along side other flags and so
+	// that reload may perform a restart.
 	if restart {
 		log.LogInfo("Restarting webby...")
 
