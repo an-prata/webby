@@ -4,7 +4,17 @@
 
 package daemon
 
-import "github.com/an-prata/webby/logger"
+import (
+	"github.com/an-prata/webby/logger"
+	"github.com/an-prata/webby/server"
+)
+
+func GetRestartCallback(serverCommandChan chan server.ServerThreadCommand) DaemonCommandCallback {
+	return func(arg DaemonCommandArg) error {
+		serverCommandChan <- server.Restart
+		return nil
+	}
+}
 
 // Returns a function, that when called, will modify the given log's recording
 // log level to match its parameters.
@@ -14,7 +24,7 @@ func GetLogPrintCallback(log *logger.Log) DaemonCommandCallback {
 		logLevel, err := logger.CheckLogLevel(uint8(logLevel))
 
 		if err != nil {
-			log.LogWarn("invalid log level given, using 'All'")
+			log.LogWarn("Invalid log level given, using 'All'")
 		}
 
 		log.Printing = logLevel
@@ -30,7 +40,7 @@ func GetLogRecordCallback(log *logger.Log) DaemonCommandCallback {
 		logLevel, err := logger.CheckLogLevel(uint8(logLevel))
 
 		if err != nil {
-			log.LogWarn("invalid log level given, using 'All'")
+			log.LogWarn("Invalid log level given, using 'All'")
 		}
 
 		log.Recording = logLevel

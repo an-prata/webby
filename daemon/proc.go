@@ -62,10 +62,7 @@ func DaemonMain() {
 	serverCommandChan := srv.StartThreaded()
 
 	commandListener, err := NewDaemonListener(map[DaemonCommand]DaemonCommandCallback{
-		Restart: func(_ DaemonCommandArg) error {
-			serverCommandChan <- server.Restart
-			return nil
-		},
+		Restart: GetRestartCallback(serverCommandChan),
 
 		Reload: func(_ DaemonCommandArg) error {
 			sigtermChannel <- syscall.SIGINT
