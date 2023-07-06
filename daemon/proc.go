@@ -59,17 +59,15 @@ func DaemonMain() {
 	signal.Notify(sigtermChannel, syscall.SIGTERM, syscall.SIGINT)
 
 	reload := false
-	shuttingDown := false
+	serverCommandChan := srv.StartThreaded()
 
 	commandListener, err := NewDaemonListener(map[DaemonCommand]DaemonCommandCallback{
 		Restart: func(_ DaemonCommandArg) error {
-			// When the `Server.Start()` function returns it is automatically called
-			// again in a loop.
-			return srv.Stop()
+			serverCommandChan <- server.Restart
+			return nil
 		},
 
 		Reload: func(_ DaemonCommandArg) error {
-			reload = true
 			sigtermChannel <- syscall.SIGINT
 			return nil
 		},
@@ -88,27 +86,8 @@ func DaemonMain() {
 		go commandListener.Listen()
 	}
 
-	go func() {
-		for {
-			err := srv.Start()
-
-			if reload || shuttingDown {
-				return
-			} else {
-				log.LogErr(err.Error())
-			}
-
-			srv, err = server.NewServer(opts, &log)
-
-			if err != nil {
-				log.LogErr(err.Error())
-				return
-			}
-		}
-	}()
-
 	sig := <-sigtermChannel
-	shuttingDown = true
+	serverCommandChan <- server.Shutoff
 
 	if !reload {
 		log.LogWarn("Received signal: " + sig.String())
