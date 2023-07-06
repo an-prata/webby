@@ -80,14 +80,16 @@ func CmdReload(socket net.Conn, log *logger.Log, arg bool) {
 		return
 	}
 
-	log.LogInfo("Reloading config...")
+	log.LogInfo("Reloading config and restarting webby...")
 
 	var buf [1]byte
 	socket.Write(append([]byte(Reload), 0))
 	socket.Read(buf[:])
 
 	if DaemonCommandSuccess(buf[0]) != Success {
-		log.LogErr("Could not reload config")
+		log.LogErr("Could not reload config or restart")
+	} else {
+		log.LogInfo("Reloaded and restarted!")
 	}
 }
 
