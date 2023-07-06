@@ -16,6 +16,19 @@ import (
 
 const DefaultSitePath = "/srv/webby/"
 
+// Represents a command that may be given to a running server thread through a
+// channel.
+type ServerThreadCommand = uint8
+
+const (
+	// Shuts off the running thread and returns.
+	Shutoff ServerThreadCommand = iota
+
+	// Will close the current server and reinstantiate it from the same options and
+	// log as provided during construction.
+	Restart
+)
+
 type Server struct {
 	srv  *http.Server
 	log  *logger.Log
@@ -65,6 +78,11 @@ func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 	return &Server{&httpSrv, log, opts}, nil
 }
 
+// Starts the server, if TLS is supports then it is started in another thread
+// and regular HTTP is started in the current thread. This function will only
+// ever return on an error. If the server is started in this fashion then it may
+// be stopped using the `Server.Stop()` method, in which case it will return an
+// error indicated this.
 func (s *Server) Start() error {
 	if s.opts.supportsTLS() {
 		go s.srv.ListenAndServeTLS(s.opts.Cert, s.opts.Key)
@@ -74,6 +92,42 @@ func (s *Server) Start() error {
 
 }
 
+// Starts the server in a seperate thread and returns a channel for giving said
+// thread commands. This method, unlike the more standard `Server.Start()`
+// method, cannot be stopped using the `Server.Stop()` method and must instead
+// be instructed to stop using the provided channel. This method also does not
+// report errors except in logs.
+func (s *Server) StartThreaded() chan ServerThreadCommand {
+	commandChan := make(chan ServerThreadCommand, 1)
+
+	go func() {
+	Start:
+		go s.Start()
+		command := <-commandChan
+		s.Stop()
+
+		if command == Shutoff {
+			s.log.LogInfo("HTTP server shutting off...")
+			return
+		} else if command == Restart {
+			s.log.LogInfo("HTTP server restarting...")
+			srv, err := NewServer(s.opts, s.log)
+
+			if err != nil {
+				s.log.LogErr("Could not reinstantiate HTTP server")
+				return
+			}
+
+			*s = *srv
+			goto Start
+		}
+	}()
+
+	return commandChan
+}
+
+// Stops a server started by the `Server.Start()` method. This method will not
+// stop servers started using the `Server.StartThreaded()` method.
 func (s *Server) Stop() error {
 	return s.srv.Close()
 }
