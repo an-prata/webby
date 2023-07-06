@@ -1,3 +1,7 @@
+// Copyright (c) 2023 Evan Overman (https://an-prata.it).
+// Licensed under the MIT License.
+// See LICENSE file in repository root for complete license text.
+
 package daemon
 
 import (
@@ -10,6 +14,7 @@ import (
 )
 
 func DaemonMain() {
+Start:
 	log, err := logger.NewLog(logger.All, logger.All, "")
 
 	if err != nil {
@@ -24,31 +29,25 @@ func DaemonMain() {
 		log.LogWarn("Using default configuration due to errors")
 	}
 
-	if opts.Log != "" {
-		log.LogInfo("Opening '" + opts.Log + "' for recording logs")
-		err = log.OpenFile(opts.Log)
+	err = log.OpenFile(opts.Log)
 
-		if err != nil {
-			log.LogErr("Could not open '" + opts.Log + "' for logging")
-		}
+	if err != nil {
+		log.LogErr("Could not open '" + opts.Log + "' for logging")
 	}
 
-	printing, err := logger.LevelFromString(opts.LogLevelPrint)
+	err = log.SetRecordLevelFromString(opts.LogLevelPrint)
 
 	if err != nil {
 		log.LogErr(err.Error())
-		log.LogWarn("Using log level 'All' due to errors for printing")
+		log.LogWarn("Using log level 'All' for printing due to errors")
 	}
 
-	recording, err := logger.LevelFromString(opts.LogLevelRecord)
+	err = log.SetPrintLevelFromString(opts.LogLevelRecord)
 
 	if err != nil {
 		log.LogErr(err.Error())
-		log.LogWarn("Using log level 'All' due to errors for recording")
+		log.LogWarn("Using log level 'All' for recording due to errors")
 	}
-
-	log.Printing = printing
-	log.Saving = recording
 
 	srv, err := server.NewServer(opts, &log)
 
@@ -57,48 +56,15 @@ func DaemonMain() {
 		return
 	}
 
-	sigtermChannel := make(chan os.Signal, 1)
-	signal.Notify(sigtermChannel, syscall.SIGTERM, syscall.SIGINT)
+	serverCommandChan := srv.StartThreaded()
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
 
-	reload := false
-	shuttingDown := false
-
-	commandListener, err := NewDaemonListener(map[DaemonCommand]func(DaemonCommandArg) error{
-		Restart: func(_ DaemonCommandArg) error {
-			// When the `Server.Start()` function returns it is automatically called
-			// again in a loop.
-			return srv.Stop()
-		},
-
-		Reload: func(_ DaemonCommandArg) error {
-			reload = true
-			sigtermChannel <- syscall.SIGINT
-			return nil
-		},
-
-		LogRecord: func(arg DaemonCommandArg) error {
-			logLevel := logger.LogLevel(arg)
-			logLevel, err := logger.CheckLogLevel(uint8(logLevel))
-
-			if err != nil {
-				log.LogWarn("invalid log level given, using 'All'")
-			}
-
-			log.Saving = logLevel
-			return nil
-		},
-
-		LogPrint: func(arg DaemonCommandArg) error {
-			logLevel := logger.LogLevel(arg)
-			logLevel, err := logger.CheckLogLevel(uint8(logLevel))
-
-			if err != nil {
-				log.LogWarn("invalid log level given, using 'All'")
-			}
-
-			log.Printing = logLevel
-			return nil
-		},
+	commandListener, err := NewDaemonListener(map[DaemonCommand]DaemonCommandCallback{
+		Restart:   GetRestartCallback(serverCommandChan),
+		Reload:    GetReloadCallback(signalChan),
+		LogRecord: GetLogRecordCallback(&log),
+		LogPrint:  GetLogPrintCallback(&log),
 	}, log)
 
 	usingDaemonSocket := true
@@ -111,33 +77,9 @@ func DaemonMain() {
 		go commandListener.Listen()
 	}
 
-	go func() {
-		for {
-			err := srv.Start()
-
-			if reload || shuttingDown {
-				return
-			} else {
-				log.LogErr(err.Error())
-			}
-
-			srv, err = server.NewServer(opts, &log)
-
-			if err != nil {
-				log.LogErr(err.Error())
-				return
-			}
-		}
-	}()
-
-	sig := <-sigtermChannel
-	shuttingDown = true
-
-	if !reload {
-		log.LogWarn("Received signal: " + sig.String())
-	} else {
-		log.LogWarn("Received reload command")
-	}
+	sig := <-signalChan
+	serverCommandChan <- server.Shutoff
+	log.LogInfo("Received signal: " + sig.String())
 
 	if usingDaemonSocket {
 		log.LogInfo("Closing Unix Domain Socket...")
@@ -150,7 +92,9 @@ func DaemonMain() {
 	log.LogInfo("Closing log...")
 	log.Close()
 
-	if reload {
-		DaemonMain()
+	_, ok := sig.(ReloadSignal)
+
+	if ok {
+		goto Start
 	}
 }
