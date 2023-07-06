@@ -57,11 +57,23 @@ func DaemonMain() {
 		return
 	}
 
+	sigtermChannel := make(chan os.Signal, 1)
+	signal.Notify(sigtermChannel, syscall.SIGTERM, syscall.SIGINT)
+
+	reload := false
+	shuttingDown := false
+
 	commandListener, err := NewDaemonListener(map[DaemonCommand]func(DaemonCommandArg) error{
 		Restart: func(_ DaemonCommandArg) error {
 			// When the `Server.Start()` function returns it is automatically called
 			// again in a loop.
 			return srv.Stop()
+		},
+
+		Reload: func(_ DaemonCommandArg) error {
+			reload = true
+			sigtermChannel <- syscall.SIGINT
+			return nil
 		},
 
 		LogRecord: func(arg DaemonCommandArg) error {
@@ -99,13 +111,16 @@ func DaemonMain() {
 		go commandListener.Listen()
 	}
 
-	sigtermChannel := make(chan os.Signal, 1)
-	signal.Notify(sigtermChannel, syscall.SIGTERM, syscall.SIGINT)
-
 	go func() {
 		for {
-			// Will restart the server on close.
-			log.LogErr(srv.Start().Error())
+			err := srv.Start()
+
+			if reload || shuttingDown {
+				return
+			} else {
+				log.LogErr(err.Error())
+			}
+
 			srv, err = server.NewServer(opts, &log)
 
 			if err != nil {
@@ -116,13 +131,26 @@ func DaemonMain() {
 	}()
 
 	sig := <-sigtermChannel
-	log.LogWarn("Received signal: " + sig.String())
+	shuttingDown = true
+
+	if !reload {
+		log.LogWarn("Received signal: " + sig.String())
+	} else {
+		log.LogWarn("Received reload command")
+	}
 
 	if usingDaemonSocket {
 		log.LogInfo("Closing Unix Domain Socket...")
 		commandListener.Close()
 	}
 
+	log.LogInfo("Stopping server...")
+	srv.Stop()
+
 	log.LogInfo("Closing log...")
 	log.Close()
+
+	if reload {
+		DaemonMain()
+	}
 }
