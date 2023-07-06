@@ -13,6 +13,7 @@ import (
 	"github.com/an-prata/webby/server"
 )
 
+// Main function of daemon execution.
 func DaemonMain() {
 Start:
 	log, err := logger.NewLog(logger.All, logger.All, "")

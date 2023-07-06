@@ -101,12 +101,16 @@ func NewLog(print LogLevel, save LogLevel, file string) (Log, error) {
 	return log, err
 }
 
+// Sets the recording log level from a string, sets to `All` if the string is
+// invalid and returns an error.
 func (log *Log) SetRecordLevelFromString(str string) error {
 	level, err := LevelFromString(str)
 	log.Recording = level
 	return err
 }
 
+// Sets the printing log level from a string, sets to `All` if the string is
+// invalid and returns an error.
 func (log *Log) SetPrintLevelFromString(str string) error {
 	level, err := LevelFromString(str)
 	log.Printing = level
