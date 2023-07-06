@@ -46,7 +46,7 @@ type Log struct {
 	Printing LogLevel
 
 	// Log items that will be saved to the log file.
-	Saving LogLevel
+	Recording LogLevel
 
 	// Pointer to a file for saving log messages, may be nil.
 	file *os.File
@@ -101,8 +101,26 @@ func NewLog(print LogLevel, save LogLevel, file string) (Log, error) {
 	return log, err
 }
 
-// Creates a new file or truncates it at the given path.
+func (log *Log) SetRecordLevelFromString(str string) error {
+	level, err := LevelFromString(str)
+	log.Recording = level
+	return err
+}
+
+func (log *Log) SetPrintLevelFromString(str string) error {
+	level, err := LevelFromString(str)
+	log.Printing = level
+	return err
+}
+
+// Creates a new file or truncates it at the given path and uses it for
+// recording log messages. This function will return no error if passed an empty
+// string.
 func (log *Log) OpenFile(path string) error {
+	if path == "" {
+		return nil
+	}
+
 	file, err := os.Create(path)
 
 	if err != nil {
@@ -121,7 +139,7 @@ func (log *Log) LogErr(msg string) error {
 		fmt.Printf("[%s%sERR%s]  (%s): %s\n", bold, red, normal, now, msg)
 	}
 
-	if log.Saving&Err == Err && log.file != nil {
+	if log.Recording&Err == Err && log.file != nil {
 		_, err := fmt.Fprintf(log.file, "[ERR]  (%s): %s\n", now, msg)
 		return err
 	}
@@ -137,7 +155,7 @@ func (log *Log) LogWarn(msg string) error {
 		fmt.Printf("[%s%sWARN%s] (%s): %s\n", bold, yellow, normal, now, msg)
 	}
 
-	if log.Saving&Warn == Warn && log.file != nil {
+	if log.Recording&Warn == Warn && log.file != nil {
 		_, err := fmt.Fprintf(log.file, "[WARN] (%s): %s\n", now, msg)
 		return err
 	}
@@ -153,7 +171,7 @@ func (log *Log) LogInfo(msg string) error {
 		fmt.Printf("[%s%sINFO%s] (%s): %s\n", bold, blue, normal, now, msg)
 	}
 
-	if log.Saving&Info == Info && log.file != nil {
+	if log.Recording&Info == Info && log.file != nil {
 		_, err := fmt.Fprintf(log.file, "[INFO] (%s): %s\n", now, msg)
 		return err
 	}

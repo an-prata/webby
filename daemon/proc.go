@@ -24,31 +24,25 @@ func DaemonMain() {
 		log.LogWarn("Using default configuration due to errors")
 	}
 
-	if opts.Log != "" {
-		log.LogInfo("Opening '" + opts.Log + "' for recording logs")
-		err = log.OpenFile(opts.Log)
+	err = log.OpenFile(opts.Log)
 
-		if err != nil {
-			log.LogErr("Could not open '" + opts.Log + "' for logging")
-		}
+	if err != nil {
+		log.LogErr("Could not open '" + opts.Log + "' for logging")
 	}
 
-	printing, err := logger.LevelFromString(opts.LogLevelPrint)
+	err = log.SetRecordLevelFromString(opts.LogLevelPrint)
 
 	if err != nil {
 		log.LogErr(err.Error())
-		log.LogWarn("Using log level 'All' due to errors for printing")
+		log.LogWarn("Using log level 'All' for printing due to errors")
 	}
 
-	recording, err := logger.LevelFromString(opts.LogLevelRecord)
+	err = log.SetPrintLevelFromString(opts.LogLevelRecord)
 
 	if err != nil {
 		log.LogErr(err.Error())
-		log.LogWarn("Using log level 'All' due to errors for recording")
+		log.LogWarn("Using log level 'All' for printing due to errors")
 	}
-
-	log.Printing = printing
-	log.Saving = recording
 
 	srv, err := server.NewServer(opts, &log)
 
@@ -84,7 +78,7 @@ func DaemonMain() {
 				log.LogWarn("invalid log level given, using 'All'")
 			}
 
-			log.Saving = logLevel
+			log.Recording = logLevel
 			return nil
 		},
 
