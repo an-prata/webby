@@ -42,71 +42,8 @@ func main() {
 
 	defer socket.Close()
 
-	if logRecord != "" {
-		logLevel, err := logger.LevelFromString(logRecord)
-
-		if err != nil {
-			log.LogErr("Could not identify log level from given argument (" + logRecord + ")")
-			log.LogInfo("try using 'error', 'warning', 'info', or 'all'")
-			return
-		}
-
-		var buf [1]byte
-		socket.Write(append([]byte(daemon.LogRecord), byte(logLevel)))
-		socket.Read(buf[:])
-
-		if daemon.DaemonCommandSuccess(buf[0]) != daemon.Success {
-			log.LogErr("Could not change log level for recording")
-		} else {
-			log.LogInfo("Log level for recording changed to '" + logRecord + "'")
-		}
-	}
-
-	if logPrint != "" {
-		logLevel, err := logger.LevelFromString(logPrint)
-
-		if err != nil {
-			log.LogErr("Could not identify log level from given argument (" + logPrint + ")")
-			log.LogInfo("try using 'error', 'warning', 'info', or 'all'")
-			return
-		}
-
-		var buf [1]byte
-		socket.Write(append([]byte(daemon.LogPrint), byte(logLevel)))
-		socket.Read(buf[:])
-
-		if daemon.DaemonCommandSuccess(buf[0]) != daemon.Success {
-			log.LogErr("Could not change log level for printing")
-		} else {
-			log.LogInfo("Log level for printing changed to '" + logPrint + "'")
-		}
-	}
-
-	if reload {
-		log.LogInfo("Reloading config...")
-
-		var buf [1]byte
-		socket.Write(append([]byte(daemon.Reload), 0))
-		socket.Read(buf[:])
-
-		if daemon.DaemonCommandSuccess(buf[0]) != daemon.Success {
-			log.LogErr("Could not reload config")
-		}
-	}
-
-	// Restart occures last so that it may be used along side other flags and so
-	// that reload may perform a restart.
-	if restart {
-		log.LogInfo("Restarting webby...")
-
-		var buf [1]byte
-		socket.Write(append([]byte(daemon.Restart), 0))
-		socket.Read(buf[:])
-
-		if daemon.DaemonCommandSuccess(buf[0]) != daemon.Success {
-			log.LogErr("Could not restart webby correctly")
-		} else {
-			log.LogInfo("Restarted!")
-		}
-	}
+	daemon.CmdSetLogRecordLevel(socket, &log, logRecord)
+	daemon.CmdSetLogPrintLevel(socket, &log, logPrint)
+	daemon.CmdRestart(socket, &log, restart)
+	daemon.CmdReload(socket, &log, reload)
 }
