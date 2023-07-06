@@ -1,3 +1,7 @@
+// Copyright (c) 2023 Evan Overman (https://an-prata.it).
+// Licensed under the MIT License.
+// See LICENSE file in repository root for complete license text.
+
 package daemon
 
 import (
@@ -57,7 +61,7 @@ func DaemonMain() {
 	reload := false
 	shuttingDown := false
 
-	commandListener, err := NewDaemonListener(map[DaemonCommand]func(DaemonCommandArg) error{
+	commandListener, err := NewDaemonListener(map[DaemonCommand]DaemonCommandCallback{
 		Restart: func(_ DaemonCommandArg) error {
 			// When the `Server.Start()` function returns it is automatically called
 			// again in a loop.
@@ -70,29 +74,8 @@ func DaemonMain() {
 			return nil
 		},
 
-		LogRecord: func(arg DaemonCommandArg) error {
-			logLevel := logger.LogLevel(arg)
-			logLevel, err := logger.CheckLogLevel(uint8(logLevel))
-
-			if err != nil {
-				log.LogWarn("invalid log level given, using 'All'")
-			}
-
-			log.Recording = logLevel
-			return nil
-		},
-
-		LogPrint: func(arg DaemonCommandArg) error {
-			logLevel := logger.LogLevel(arg)
-			logLevel, err := logger.CheckLogLevel(uint8(logLevel))
-
-			if err != nil {
-				log.LogWarn("invalid log level given, using 'All'")
-			}
-
-			log.Printing = logLevel
-			return nil
-		},
+		LogRecord: GetLogRecordCallback(&log),
+		LogPrint:  GetLogPrintCallback(&log),
 	}, log)
 
 	usingDaemonSocket := true

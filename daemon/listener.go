@@ -51,6 +51,9 @@ type DaemonCommandArg uint8
 // command.
 type DaemonCommandSuccess uint8
 
+// Type alias for the function signature of a daemon command callback.
+type DaemonCommandCallback func(DaemonCommandArg) error
+
 const (
 	// The daemon command completed successfuly.
 	Success DaemonCommandSuccess = iota
@@ -66,7 +69,7 @@ type DaemonListener struct {
 	// A map of daemon commands to their callbacks. The passed in argument will
 	// always be the last byte read from the Unix Domain Socket and the command
 	// should be everything up to that.
-	callbacks map[DaemonCommand]func(DaemonCommandArg) error
+	callbacks map[DaemonCommand]DaemonCommandCallback
 
 	shuttingOff bool
 
@@ -80,7 +83,7 @@ type DaemonListener struct {
 // Creates a new Unix Domain Socket and returns a pointer to a listener for
 // application commands and requests on that socket. When the listener is
 // started all commands will be executed according to the given callbacks.
-func NewDaemonListener(callbacks map[DaemonCommand]func(DaemonCommandArg) error, log logger.Log) (DaemonListener, error) {
+func NewDaemonListener(callbacks map[DaemonCommand]DaemonCommandCallback, log logger.Log) (DaemonListener, error) {
 	os.Remove(SocketPath)
 	socket, err := net.Listen("unix", SocketPath)
 	shutoffChannel := make(chan bool, 1)
