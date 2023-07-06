@@ -5,13 +5,36 @@
 package daemon
 
 import (
+	"os"
+
 	"github.com/an-prata/webby/logger"
 	"github.com/an-prata/webby/server"
 )
 
+// Represents a signal originating at a daemon command and sent through a
+// channel by the reload callback.
+type ReloadSignal struct{}
+
+func (r ReloadSignal) String() string {
+	return "Daemon Reload Signal"
+}
+
+func (r ReloadSignal) Signal() {}
+
+// Returns a function that will sent the `server.Restart` constant through the
+// given channel when called.
 func GetRestartCallback(serverCommandChan chan server.ServerThreadCommand) DaemonCommandCallback {
-	return func(arg DaemonCommandArg) error {
+	return func(_ DaemonCommandArg) error {
 		serverCommandChan <- server.Restart
+		return nil
+	}
+}
+
+// Returns a function that will send a `ReloadSignal` though the given channel
+// when called.
+func GetReloadCallback(signalChan chan os.Signal) DaemonCommandCallback {
+	return func(_ DaemonCommandArg) error {
+		signalChan <- ReloadSignal{}
 		return nil
 	}
 }
