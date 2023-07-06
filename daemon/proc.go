@@ -7,6 +7,7 @@ package daemon
 import (
 	"os"
 	"os/signal"
+	"reflect"
 	"syscall"
 
 	"github.com/an-prata/webby/logger"
@@ -14,6 +15,7 @@ import (
 )
 
 func DaemonMain() {
+Start:
 	log, err := logger.NewLog(logger.All, logger.All, "")
 
 	if err != nil {
@@ -55,20 +57,13 @@ func DaemonMain() {
 		return
 	}
 
-	sigtermChannel := make(chan os.Signal, 1)
-	signal.Notify(sigtermChannel, syscall.SIGTERM, syscall.SIGINT)
-
-	reload := false
 	serverCommandChan := srv.StartThreaded()
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
 
 	commandListener, err := NewDaemonListener(map[DaemonCommand]DaemonCommandCallback{
-		Restart: GetRestartCallback(serverCommandChan),
-
-		Reload: func(_ DaemonCommandArg) error {
-			sigtermChannel <- syscall.SIGINT
-			return nil
-		},
-
+		Restart:   GetRestartCallback(serverCommandChan),
+		Reload:    GetReloadCallback(signalChan),
 		LogRecord: GetLogRecordCallback(&log),
 		LogPrint:  GetLogPrintCallback(&log),
 	}, log)
@@ -83,14 +78,9 @@ func DaemonMain() {
 		go commandListener.Listen()
 	}
 
-	sig := <-sigtermChannel
+	sig := <-signalChan
 	serverCommandChan <- server.Shutoff
-
-	if !reload {
-		log.LogWarn("Received signal: " + sig.String())
-	} else {
-		log.LogWarn("Received reload command")
-	}
+	log.LogInfo("Received signal: " + sig.String())
 
 	if usingDaemonSocket {
 		log.LogInfo("Closing Unix Domain Socket...")
@@ -103,7 +93,9 @@ func DaemonMain() {
 	log.LogInfo("Closing log...")
 	log.Close()
 
-	if reload {
-		DaemonMain()
+	_, ok := sig.(ReloadSignal)
+
+	if ok {
+		goto Start
 	}
 }
