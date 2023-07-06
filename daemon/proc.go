@@ -7,7 +7,6 @@ package daemon
 import (
 	"os"
 	"os/signal"
-	"reflect"
 	"syscall"
 
 	"github.com/an-prata/webby/logger"
