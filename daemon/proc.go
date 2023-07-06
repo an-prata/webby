@@ -45,7 +45,7 @@ func DaemonMain() {
 
 	if err != nil {
 		log.LogErr(err.Error())
-		log.LogWarn("Using log level 'All' for printing due to errors")
+		log.LogWarn("Using log level 'All' for recording due to errors")
 	}
 
 	srv, err := server.NewServer(opts, &log)
