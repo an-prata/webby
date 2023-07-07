@@ -8,10 +8,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/an-prata/webby/logger"
 	"github.com/an-prata/webby/server"
 )
+
+const CONFIG_PATH = "/etc/webby/config.json"
 
 // Main function of daemon execution.
 func DaemonMain() {
@@ -23,7 +26,7 @@ Start:
 	}
 
 	defer log.Close()
-	opts, err := server.LoadConfigFromPath("/etc/webby/config.json")
+	opts, err := server.LoadConfigFromPath(CONFIG_PATH)
 
 	if err != nil {
 		log.LogErr(err.Error())
@@ -67,6 +70,25 @@ Start:
 		LogRecord: GetLogRecordCallback(&log),
 		LogPrint:  GetLogPrintCallback(&log),
 	}, log)
+
+	if opts.AutoReload {
+		go func() {
+			previousOpts := opts
+			for {
+				currentOpts, err := server.LoadConfigFromPath(CONFIG_PATH)
+
+				if err != nil {
+					log.LogErr("Could not auto reload config due to read errors")
+				} else if currentOpts.Equals(&previousOpts) {
+					log.LogInfo("Detected config change, sending reload signal...")
+					signalChan <- ReloadSignal{}
+				}
+
+				// Thats five seconds, I really dont like Go's durations.
+				time.Sleep(time.Duration(5_000_000_000))
+			}
+		}()
+	}
 
 	usingDaemonSocket := true
 
