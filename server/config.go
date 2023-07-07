@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 )
 
 type ServerOptions struct {
@@ -80,6 +81,30 @@ func DefaultOptions() ServerOptions {
 		AutoReload:     true,
 		DeadPaths:      []string{},
 	}
+}
+
+// Returns true if both configurations are equal.
+func (lhs *ServerOptions) Equals(rhs *ServerOptions) bool {
+	// The lambda function is here because if possible we would like to avoid
+	// making string comparrisons in a loop. By moving it to the end in a lambda
+	// it has a chance of the and operator short circuting, saving us a potentially
+	// arbatrary number of string comparisons.
+	return strings.EqualFold(lhs.Site, rhs.Site) &&
+		strings.EqualFold(lhs.Cert, rhs.Cert) &&
+		strings.EqualFold(lhs.Key, rhs.Key) &&
+		lhs.Port == rhs.Port &&
+		strings.EqualFold(lhs.Log, rhs.Log) &&
+		strings.EqualFold(lhs.LogLevelPrint, rhs.LogLevelRecord) &&
+		lhs.AutoReload == rhs.AutoReload &&
+		func() bool {
+			sameDeadPaths := len(lhs.DeadPaths) == len(rhs.DeadPaths)
+
+			for i := 0; sameDeadPaths && i < len(lhs.DeadPaths); i++ {
+				sameDeadPaths = strings.EqualFold(lhs.DeadPaths[i], rhs.DeadPaths[i])
+			}
+
+			return sameDeadPaths
+		}()
 }
 
 // Replaces appropriate fields with default values.
