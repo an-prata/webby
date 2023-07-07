@@ -36,6 +36,9 @@ type ServerOptions struct {
 	// or "Info".
 	LogLevelRecord string
 
+	// Whether or not to check for changes in the config and reload automatically.
+	AutoReload bool
+
 	// Paths that should be granted a dead response, can be used for fucking with
 	// bot probing or the like. A dead response is just the name I gave to
 	// redirecting a request back onto the client for the same path.
@@ -64,6 +67,7 @@ func LoadConfigFromPath(path string) (ServerOptions, error) {
 	return opts, nil
 }
 
+// Get the default configuration.
 func DefaultOptions() ServerOptions {
 	return ServerOptions{
 		Site:           "/srv/webby/website",
@@ -73,6 +77,7 @@ func DefaultOptions() ServerOptions {
 		Log:            "/srv/webby/webby.log",
 		LogLevelPrint:  "all",
 		LogLevelRecord: "all",
+		AutoReload:     true,
 		DeadPaths:      []string{},
 	}
 }
