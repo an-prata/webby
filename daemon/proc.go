@@ -84,7 +84,6 @@ Start:
 					signalChan <- ReloadSignal{}
 				}
 
-				// Thats five seconds, I really dont like Go's durations.
 				time.Sleep(time.Duration(5_000_000_000))
 			}
 		}()
