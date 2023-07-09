@@ -30,6 +30,9 @@ const (
 	// Reloads the configuration file and then restarts.
 	Reload = "reload"
 
+	// Stops the current daemon.
+	Stop = "stop"
+
 	// Sets the log level for recording logs to file. Should interperet its
 	// argument to be the desired log level.
 	LogRecord = "log-record"

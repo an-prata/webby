@@ -115,3 +115,26 @@ func CmdRestart(socket net.Conn, log *logger.Log, arg bool) {
 		log.LogInfo("Restarted!")
 	}
 }
+
+// Sends the stop command to the daemon through the provided socket.
+//
+// This function is intended as the end of execution for the command it
+// represents and will therefore perform I/O operations, output to the user, and
+// indicate errors only though these means.
+func CmdStop(socket net.Conn, log *logger.Log, arg bool) {
+	if !arg {
+		return
+	}
+
+	log.LogInfo("Stopping webby...")
+
+	var buf [1]byte
+	socket.Write(append([]byte(Stop), 0))
+	socket.Read(buf[:])
+
+	if DaemonCommandSuccess(buf[0]) != Success {
+		log.LogErr("Could not stop webby")
+	} else {
+		log.LogInfo("Stopped!")
+	}
+}
