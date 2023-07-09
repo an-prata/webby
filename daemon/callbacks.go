@@ -16,7 +16,7 @@ import (
 type ReloadSignal struct{}
 
 func (r ReloadSignal) String() string {
-	return "Daemon Reload Signal"
+	return "Reload"
 }
 
 func (r ReloadSignal) Signal() {}

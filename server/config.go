@@ -8,6 +8,16 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"time"
+)
+
+type FileChangeSignal = uint8
+
+const (
+	ReadError FileChangeSignal = iota
+	InitialReadError
+	SizeChange
+	TimeModifiedChange
 )
 
 type ServerOptions struct {
@@ -35,6 +45,9 @@ type ServerOptions struct {
 	// Log level for writing to file out. Can be "All", "None", "Error", "Warning",
 	// or "Info".
 	LogLevelRecord string
+
+	// Whether or not to check for changes in the config and reload automatically.
+	AutoReload bool
 
 	// Paths that should be granted a dead response, can be used for fucking with
 	// bot probing or the like. A dead response is just the name I gave to
@@ -64,6 +77,56 @@ func LoadConfigFromPath(path string) (ServerOptions, error) {
 	return opts, nil
 }
 
+// Watches for changes in the given file, intended for configs but anything
+// should work. This function will report all errors through the given callback.
+//
+// This function will not call the given callback more than once per detected
+// file change and because of this file modification date changes take
+// precedence over size changes.
+//
+// Callback should return true to terminate the goroutine checking for changes
+// and false to continue.
+func CallOnChange(callback func(FileChangeSignal) bool, filePath string) {
+	go callOnChange(callback, filePath)
+}
+
+func callOnChange(callback func(FileChangeSignal) bool, filePath string) {
+	previousStat, err := os.Stat(filePath)
+	shouldReturn := false
+
+	if err != nil {
+		shouldReturn = callback(InitialReadError)
+	}
+
+	for {
+		currentStat, err := os.Stat(filePath)
+
+		if err != nil {
+			shouldReturn = callback(ReadError)
+			goto Sleep
+		}
+
+		if currentStat.ModTime() != previousStat.ModTime() {
+			shouldReturn = callback(TimeModifiedChange)
+			goto Sleep
+		}
+
+		if currentStat.Size() != previousStat.Size() {
+			shouldReturn = callback(SizeChange)
+			goto Sleep
+		}
+
+	Sleep:
+		if shouldReturn {
+			return
+		}
+
+		previousStat = currentStat
+		time.Sleep(1 * time.Second)
+	}
+}
+
+// Get the default configuration.
 func DefaultOptions() ServerOptions {
 	return ServerOptions{
 		Site:           "/srv/webby/website",
@@ -73,6 +136,7 @@ func DefaultOptions() ServerOptions {
 		Log:            "/srv/webby/webby.log",
 		LogLevelPrint:  "all",
 		LogLevelRecord: "all",
+		AutoReload:     true,
 		DeadPaths:      []string{},
 	}
 }

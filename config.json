@@ -6,5 +6,6 @@
 	"Log": "/srv/webby/webby.log",
 	"LogLevelPrint": "All",
 	"LogLevelRecord": "All",
+	"AutoReload": true,
 	"DeadPaths": []
 }

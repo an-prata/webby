@@ -13,6 +13,8 @@ import (
 	"github.com/an-prata/webby/server"
 )
 
+const CONFIG_PATH = "/etc/webby/config.json"
+
 // Main function of daemon execution.
 func DaemonMain() {
 Start:
@@ -23,7 +25,7 @@ Start:
 	}
 
 	defer log.Close()
-	opts, err := server.LoadConfigFromPath("/etc/webby/config.json")
+	opts, err := server.LoadConfigFromPath(CONFIG_PATH)
 
 	if err != nil {
 		log.LogErr(err.Error())
@@ -76,6 +78,20 @@ Start:
 		usingDaemonSocket = false
 	} else {
 		go commandListener.Listen()
+	}
+
+	if opts.AutoReload {
+		server.CallOnChange(func(signal server.FileChangeSignal) bool {
+			if signal == server.TimeModifiedChange || signal == server.SizeChange {
+				log.LogInfo("Config file change detected, reloading...")
+				signalChan <- ReloadSignal{}
+				return true
+			} else if signal == server.InitialReadError || signal == server.ReadError {
+				log.LogErr("Failed to read config while checking for change (auto reload is on)")
+			}
+
+			return false
+		}, CONFIG_PATH)
 	}
 
 	sig := <-signalChan
