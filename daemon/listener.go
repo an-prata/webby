@@ -23,6 +23,11 @@ const (
 	// The `None` variant here shouldn't really be used.
 	None DaemonCommand = ""
 
+	// Included here for completeness, this command should not have a callback that
+	// sends a daemon comand as it is intended to be the start of the daemon
+	// process.
+	Daemon = "daemon"
+
 	// Restarts the HTTP server and rescans directories. Useful when edits have
 	// been made to the website contents. Should ignore the passed in argument.
 	Restart = "restart"
