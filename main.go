@@ -16,12 +16,14 @@ func main() {
 	var daemonProc bool
 	var reload bool
 	var restart bool
+	var stop bool
 	var logRecord string
 	var logPrint string
 
 	flag.BoolVar(&daemonProc, "daemon", false, "runs the webby server daemon process rather than behaving like a control application")
 	flag.BoolVar(&reload, "reload", false, "reloads the configuration file and then restarts, this will reset log levels")
 	flag.BoolVar(&restart, "restart", false, "restarts the webby HTTP server, rescanning directories")
+	flag.BoolVar(&stop, "stop", false, "stops the running daemon")
 	flag.StringVar(&logRecord, "log-record", "", "sets the log level to record to file, defaults to 'All'")
 	flag.StringVar(&logPrint, "log-print", "", "sets the log level to print to standard out, defaults to 'All'")
 
@@ -46,4 +48,5 @@ func main() {
 	daemon.CmdSetLogPrintLevel(socket, &log, logPrint)
 	daemon.CmdRestart(socket, &log, restart)
 	daemon.CmdReload(socket, &log, reload)
+	daemon.CmdStop(socket, &log, stop)
 }
