@@ -11,6 +11,28 @@ import (
 	"github.com/an-prata/webby/server"
 )
 
+// The only argument that will be given to the callbacks for deamon commands.
+// Each callback may interperet this differently, for example, the restart
+// command ignores its argument, but log level commands will interperet this to
+// be a log level.
+type DaemonCommandArg uint8
+
+// The success/failure of a daemon command. This will appear as a single byte
+// response to any client commands indicating the success or failure of a
+// command.
+type DaemonCommandSuccess uint8
+
+// Type alias for the function signature of a daemon command callback.
+type DaemonCommandCallback func(DaemonCommandArg) error
+
+const (
+	// The daemon command completed successfuly.
+	Success DaemonCommandSuccess = iota
+
+	// The daemon command failed.
+	Failure
+)
+
 // Represents a signal originating at a daemon command and sent through a
 // channel by the reload callback.
 type ReloadSignal struct{}
