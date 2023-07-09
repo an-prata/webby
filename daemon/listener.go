@@ -16,60 +16,6 @@ import (
 // The path of the Unix Domain Socket created by webby for accepting commands.
 const SocketPath = "/run/webby.sock"
 
-// Represents possible commands from client connections.
-type DaemonCommand string
-
-const (
-	// The `None` variant here shouldn't really be used.
-	None DaemonCommand = ""
-
-	// Included here for completeness, this command should not have a callback that
-	// sends a daemon comand as it is intended to be the start of the daemon
-	// process.
-	Daemon = "daemon"
-
-	// Restarts the HTTP server and rescans directories. Useful when edits have
-	// been made to the website contents. Should ignore the passed in argument.
-	Restart = "restart"
-
-	// Reloads the configuration file and then restarts.
-	Reload = "reload"
-
-	// Stops the current daemon.
-	Stop = "stop"
-
-	// Sets the log level for recording logs to file. Should interperet its
-	// argument to be the desired log level.
-	LogRecord = "log-record"
-
-	// Sets the log level for printing to standard out. As a daemonized program
-	// this will be what shows up when checking the output of `# systemctl status
-	// webby`. Should interperet its argument to be the desired log level.
-	LogPrint = "log-print"
-)
-
-// The only argument that will be given to the callbacks for deamon commands.
-// Each callback may interperet this differently, for example, the restart
-// command ignores its argument, but log level commands will interperet this to
-// be a log level.
-type DaemonCommandArg uint8
-
-// The success/failure of a daemon command. This will appear as a single byte
-// response to any client commands indicating the success or failure of a
-// command.
-type DaemonCommandSuccess uint8
-
-// Type alias for the function signature of a daemon command callback.
-type DaemonCommandCallback func(DaemonCommandArg) error
-
-const (
-	// The daemon command completed successfuly.
-	Success DaemonCommandSuccess = iota
-
-	// The daemon command failed.
-	Failure
-)
-
 type DaemonListener struct {
 	// The Unix socket by which to listen for incoming commands/requests.
 	socket net.Listener
