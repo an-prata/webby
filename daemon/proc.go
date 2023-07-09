@@ -71,15 +71,13 @@ Start:
 		LogPrint:  GetLogPrintCallback(&log),
 	}, log)
 
-	usingDaemonSocket := true
-
 	if err != nil {
 		log.LogErr(err.Error())
 		log.LogErr("Could not open Unix Domain Socket")
-		usingDaemonSocket = false
-	} else {
-		go commandListener.Listen()
+		os.Exit(1)
 	}
+
+	go commandListener.Listen()
 
 	if opts.AutoReload {
 		server.CallOnChange(func(signal server.FileChangeSignal) bool {
@@ -99,10 +97,8 @@ Start:
 	serverCommandChan <- server.Shutoff
 	log.LogInfo("Received signal: " + sig.String())
 
-	if usingDaemonSocket {
-		log.LogInfo("Closing Unix Domain Socket...")
-		commandListener.Close()
-	}
+	log.LogInfo("Closing Unix Domain Socket...")
+	commandListener.Close()
 
 	log.LogInfo("Stopping server...")
 	srv.Stop()
