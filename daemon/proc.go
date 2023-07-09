@@ -81,13 +81,16 @@ Start:
 	}
 
 	if opts.AutoReload {
-		server.CallOnChange(func(signal server.FileChangeSignal) {
+		server.CallOnChange(func(signal server.FileChangeSignal) bool {
 			if signal == server.TimeModifiedChange || signal == server.SizeChange {
 				log.LogInfo("Config file change detected, reloading...")
 				signalChan <- ReloadSignal{}
+				return true
 			} else if signal == server.InitialReadError || signal == server.ReadError {
 				log.LogErr("Failed to read config while checking for change (auto reload is on)")
 			}
+
+			return false
 		}, CONFIG_PATH)
 	}
 

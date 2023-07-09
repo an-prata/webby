@@ -83,36 +83,44 @@ func LoadConfigFromPath(path string) (ServerOptions, error) {
 // This function will not call the given callback more than once per detected
 // file change and because of this file modification date changes take
 // precedence over size changes.
-func CallOnChange(callback func(FileChangeSignal), filePath string) {
+//
+// Callback should return true to terminate the goroutine checking for changes
+// and false to continue.
+func CallOnChange(callback func(FileChangeSignal) bool, filePath string) {
 	go callOnChange(callback, filePath)
 }
 
-func callOnChange(callback func(FileChangeSignal), filePath string) {
+func callOnChange(callback func(FileChangeSignal) bool, filePath string) {
 	previousStat, err := os.Stat(filePath)
+	shouldReturn := false
 
 	if err != nil {
-		callback(InitialReadError)
+		shouldReturn = callback(InitialReadError)
 	}
 
 	for {
 		currentStat, err := os.Stat(filePath)
 
 		if err != nil {
-			callback(ReadError)
+			shouldReturn = callback(ReadError)
 			goto Sleep
 		}
 
 		if currentStat.ModTime() != previousStat.ModTime() {
-			callback(TimeModifiedChange)
+			shouldReturn = callback(TimeModifiedChange)
 			goto Sleep
 		}
 
 		if currentStat.Size() != previousStat.Size() {
-			callback(SizeChange)
+			shouldReturn = callback(SizeChange)
 			goto Sleep
 		}
 
 	Sleep:
+		if shouldReturn {
+			return
+		}
+
 		previousStat = currentStat
 		time.Sleep(1 * time.Second)
 	}
