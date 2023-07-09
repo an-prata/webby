@@ -66,6 +66,7 @@ Start:
 	commandListener, err := NewDaemonListener(map[DaemonCommand]DaemonCommandCallback{
 		Restart:   GetRestartCallback(serverCommandChan),
 		Reload:    GetReloadCallback(signalChan),
+		Stop:      GetStopCallback(signalChan),
 		LogRecord: GetLogRecordCallback(&log),
 		LogPrint:  GetLogPrintCallback(&log),
 	}, log)

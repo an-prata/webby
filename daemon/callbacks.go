@@ -21,6 +21,16 @@ func (r ReloadSignal) String() string {
 
 func (r ReloadSignal) Signal() {}
 
+// Represent a signal originating at a daemmon command and sent through a
+// channel by the stop callback
+type StopSignal struct{}
+
+func (r StopSignal) String() string {
+	return "Stop"
+}
+
+func (r StopSignal) Signal() {}
+
 // Returns a function that will sent the `server.Restart` constant through the
 // given channel when called.
 func GetRestartCallback(serverCommandChan chan server.ServerThreadCommand) DaemonCommandCallback {
@@ -35,6 +45,15 @@ func GetRestartCallback(serverCommandChan chan server.ServerThreadCommand) Daemo
 func GetReloadCallback(signalChan chan os.Signal) DaemonCommandCallback {
 	return func(_ DaemonCommandArg) error {
 		signalChan <- ReloadSignal{}
+		return nil
+	}
+}
+
+// Returns a function that will send a `StopSignal` through the given channel
+// when called.
+func GetStopCallback(signalChan chan os.Signal) DaemonCommandCallback {
+	return func(_ DaemonCommandArg) error {
+		signalChan <- StopSignal{}
 		return nil
 	}
 }
