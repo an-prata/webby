@@ -14,6 +14,7 @@ import (
 
 func main() {
 	var daemonProc bool
+	var start bool
 	var reload bool
 	var restart bool
 	var stop bool
@@ -21,6 +22,7 @@ func main() {
 	var logPrint string
 
 	flag.BoolVar(&daemonProc, daemon.Daemon, false, "runs the webby server daemon process rather than behaving like a control application")
+	flag.BoolVar(&start, daemon.Start, false, "starts the daemon in a new process and forks it into the background")
 	flag.BoolVar(&reload, daemon.Reload, false, "reloads the configuration file and then restarts, this will reset log levels")
 	flag.BoolVar(&restart, daemon.Restart, false, "restarts the webby HTTP server, rescanning directories")
 	flag.BoolVar(&stop, daemon.Stop, false, "stops the running daemon")
@@ -35,6 +37,12 @@ func main() {
 	}
 
 	log, _ := logger.NewLog(logger.All, logger.None, "")
+
+	if start {
+		daemon.StartForkedDaemon(&log)
+		return
+	}
+
 	socket, err := net.Dial("unix", daemon.SocketPath)
 
 	if err != nil {
