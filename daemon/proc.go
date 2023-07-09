@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/an-prata/webby/logger"
 	"github.com/an-prata/webby/server"
@@ -71,24 +70,6 @@ Start:
 		LogPrint:  GetLogPrintCallback(&log),
 	}, log)
 
-	if opts.AutoReload {
-		go func() {
-			previousOpts := opts
-			for {
-				currentOpts, err := server.LoadConfigFromPath(CONFIG_PATH)
-
-				if err != nil {
-					log.LogErr("Could not auto reload config due to read errors")
-				} else if currentOpts.Equals(&previousOpts) {
-					log.LogInfo("Detected config change, sending reload signal...")
-					signalChan <- ReloadSignal{}
-				}
-
-				time.Sleep(time.Duration(5_000_000_000))
-			}
-		}()
-	}
-
 	usingDaemonSocket := true
 
 	if err != nil {
@@ -97,6 +78,17 @@ Start:
 		usingDaemonSocket = false
 	} else {
 		go commandListener.Listen()
+	}
+
+	if opts.AutoReload {
+		server.CallOnChange(func(signal server.FileChangeSignal) {
+			if signal == server.TimeModifiedChange || signal == server.SizeChange {
+				log.LogInfo("Config file change detected, reloading...")
+				signalChan <- ReloadSignal{}
+			} else if signal == server.InitialReadError || signal == server.ReadError {
+				log.LogErr("Failed to read config while checking for change (auto reload is on)")
+			}
+		}, CONFIG_PATH)
 	}
 
 	sig := <-signalChan

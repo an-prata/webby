@@ -8,7 +8,16 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"strings"
+	"time"
+)
+
+type FileChangeSignal = uint8
+
+const (
+	ReadError FileChangeSignal = iota
+	InitialReadError
+	SizeChange
+	TimeModifiedChange
 )
 
 type ServerOptions struct {
@@ -68,6 +77,47 @@ func LoadConfigFromPath(path string) (ServerOptions, error) {
 	return opts, nil
 }
 
+// Watches for changes in the given file, intended for configs but anything
+// should work. This function will report all errors through the given callback.
+//
+// This function will not call the given callback more than once per detected
+// file change and because of this file modification date changes take
+// precedence over size changes.
+func CallOnChange(callback func(FileChangeSignal), filePath string) {
+	go callOnChange(callback, filePath)
+}
+
+func callOnChange(callback func(FileChangeSignal), filePath string) {
+	previousStat, err := os.Stat(filePath)
+
+	if err != nil {
+		callback(InitialReadError)
+	}
+
+	for {
+		currentStat, err := os.Stat(filePath)
+
+		if err != nil {
+			callback(ReadError)
+			goto Sleep
+		}
+
+		if currentStat.ModTime() != previousStat.ModTime() {
+			callback(TimeModifiedChange)
+			goto Sleep
+		}
+
+		if currentStat.Size() != previousStat.Size() {
+			callback(SizeChange)
+			goto Sleep
+		}
+
+	Sleep:
+		previousStat = currentStat
+		time.Sleep(1 * time.Second)
+	}
+}
+
 // Get the default configuration.
 func DefaultOptions() ServerOptions {
 	return ServerOptions{
@@ -81,30 +131,6 @@ func DefaultOptions() ServerOptions {
 		AutoReload:     true,
 		DeadPaths:      []string{},
 	}
-}
-
-// Returns true if both configurations are equal.
-func (lhs *ServerOptions) Equals(rhs *ServerOptions) bool {
-	// The lambda function is here because if possible we would like to avoid
-	// making string comparrisons in a loop. By moving it to the end in a lambda
-	// it has a chance of the and operator short circuting, saving us a potentially
-	// arbatrary number of string comparisons.
-	return strings.EqualFold(lhs.Site, rhs.Site) &&
-		strings.EqualFold(lhs.Cert, rhs.Cert) &&
-		strings.EqualFold(lhs.Key, rhs.Key) &&
-		lhs.Port == rhs.Port &&
-		strings.EqualFold(lhs.Log, rhs.Log) &&
-		strings.EqualFold(lhs.LogLevelPrint, rhs.LogLevelRecord) &&
-		lhs.AutoReload == rhs.AutoReload &&
-		func() bool {
-			sameDeadPaths := len(lhs.DeadPaths) == len(rhs.DeadPaths)
-
-			for i := 0; sameDeadPaths && i < len(lhs.DeadPaths); i++ {
-				sameDeadPaths = strings.EqualFold(lhs.DeadPaths[i], rhs.DeadPaths[i])
-			}
-
-			return sameDeadPaths
-		}()
 }
 
 // Replaces appropriate fields with default values.
