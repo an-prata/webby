@@ -97,20 +97,13 @@ func GetStopCallback(signalChan chan os.Signal) DaemonCommandCallback {
 // Returns a function that simply returns `Success` when called. If callbacks
 // are being called and the daemon can give the success message to a connection
 // then we consider this to be "ok" on webby's side.
-func GetStatusCallback(handler *server.Handler, opts *server.ServerOptions, log *logger.Log) DaemonCommandCallback {
+func GetStatusCallback(handler *server.Handler, log *logger.Log) DaemonCommandCallback {
 	return func(_ DaemonCommandArg) DaemonCommandSuccess {
 		getsFailed := 0
 		getsNot200 := 0
 
 		for _, path := range handler.ValidPaths {
-			var response *http.Response
-			var err error
-
-			if opts.SupportsTLS() {
-				response, err = http.Get("https://localhost" + path)
-			} else {
-				response, err = http.Get("http://localhost" + path)
-			}
+			response, err := http.Get("http://localhost" + path)
 
 			if err != nil {
 				log.LogErr(err.Error())
