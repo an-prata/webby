@@ -47,7 +47,7 @@ func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 		return nil, errors.New("Could not stat '" + opts.Site + "'")
 	}
 
-	if opts.supportsTLS() {
+	if opts.SupportsTLS() {
 		if _, err = os.Stat(opts.Cert); err != nil {
 			return nil, errors.New("Could not stat '" + opts.Cert + "'")
 		}
@@ -85,7 +85,7 @@ func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 // be stopped using the `Server.Stop()` method, in which case it will return an
 // error indicated this.
 func (s *Server) Start() error {
-	if s.opts.supportsTLS() {
+	if s.opts.SupportsTLS() {
 		go s.srv.ListenAndServeTLS(s.opts.Cert, s.opts.Key)
 	}
 
