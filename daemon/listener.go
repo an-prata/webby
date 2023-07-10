@@ -100,12 +100,18 @@ func (daemon *DaemonListener) handleConnection(connection net.Conn, wg *sync.Wai
 		daemon.log.LogErr("No callback for requested daemon command " + string(buf[:n-1]))
 	}
 
-	err = fn(DaemonCommandArg(buf[n-1]))
+	ret := fn(DaemonCommandArg(buf[n-1]))
 
-	if err != nil {
+	// We ont compare directly to `Success` in order to allow for commands to use
+	// the available 7 bits of their return value.
+	if ret&Success != Success {
 		daemon.log.LogErr((fmt.Sprintf("Failed to respond to command: %s %d", string(buf[:n-1]), uint8(buf[n-1]))))
-		connection.Write([]byte{byte(Failure)})
+
+		// Giving the `ret` variable rather than just the `Success` constant is
+		// important for allowing some commands to use the other 7 bits available in
+		// their return value.
+		connection.Write([]byte{byte(ret)})
 	} else {
-		connection.Write([]byte{byte(Success)})
+		connection.Write([]byte{byte(ret)})
 	}
 }
