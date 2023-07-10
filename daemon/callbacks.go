@@ -102,10 +102,12 @@ func GetStatusCallback(handler *server.Handler, log *logger.Log) DaemonCommandCa
 		getsFailed := 0
 		getsNot200 := 0
 
-		for e := handler.ValidPaths.Front(); e != nil; e.Next() {
-			response, err := http.Get(e.Value.(string))
+		for _, path := range handler.ValidPaths {
+			response, err := http.Get("http://localhost" + path)
 
 			if err != nil {
+				log.LogErr(err.Error())
+				log.LogErr("Could not make GET request to path '" + path + "'")
 				getsFailed++
 				continue
 			}
@@ -119,14 +121,14 @@ func GetStatusCallback(handler *server.Handler, log *logger.Log) DaemonCommandCa
 			}
 		}
 
-		if getsFailed >= handler.ValidPaths.Len() {
-			log.LogErr("All HTTP requests made for status check failed with code '400'")
+		if getsFailed >= len(handler.ValidPaths) {
+			log.LogErr("All HTTP requests made for status check failed")
 			log.LogInfo("Status requested, giving 'HttpFail'")
 			return DaemonCommandSuccess(HttpFail)
 		}
 
 		if getsFailed > 1 {
-			log.LogErr("Some HTTP requests made for status check failed with code '400'")
+			log.LogErr("Some HTTP requests made for status check failed")
 			log.LogInfo("Status requested, giving 'HttpPartialFail'")
 			return DaemonCommandSuccess(HttpPartialFail)
 		}
