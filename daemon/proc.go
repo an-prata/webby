@@ -67,6 +67,7 @@ Start:
 		Restart:   GetRestartCallback(serverCommandChan),
 		Reload:    GetReloadCallback(signalChan),
 		Stop:      GetStopCallback(signalChan),
+		Status:    GetStatusCallback(srv.Hndlr, &log),
 		LogRecord: GetLogRecordCallback(&log),
 		LogPrint:  GetLogPrintCallback(&log),
 	}, log)
