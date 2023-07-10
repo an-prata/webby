@@ -19,9 +19,6 @@ import (
 type DaemonCommand string
 
 const (
-	// The `None` variant here shouldn't really be used.
-	None DaemonCommand = ""
-
 	// Included here for completeness, this command should not have a callback that
 	// sends a daemon comand as it is intended to be the start of the daemon
 	// process.
