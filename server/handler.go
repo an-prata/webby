@@ -5,6 +5,7 @@
 package server
 
 import (
+	"container/list"
 	"errors"
 	"io/fs"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 // Responsible for handling HTTP requests with one of a custom response from a
 // custom handler, or a static file, prioritized in that order.
 type Handler struct {
+	ValidPaths list.List
 	pathMap    map[string]string
 	handlerMap map[string]http.Handler
 	log        *logger.Log
@@ -32,6 +34,7 @@ type CustomHandler struct {
 // Creates a new handler that will log messages to the given log.
 func NewHandler(log *logger.Log) *Handler {
 	return &Handler{
+		*list.New(),
 		map[string]string{},
 		map[string]http.Handler{},
 		log,
@@ -48,6 +51,7 @@ func (h *Handler) MapFile(uriPath, filePath string) error {
 
 	h.log.LogInfo("Mapped URI '" + uriPath + "' to file '" + filePath + "'")
 	h.pathMap[uriPath] = filePath
+	h.ValidPaths.PushBack(uriPath)
 
 	if strings.Contains(uriPath, "..") {
 		h.log.LogWarn("Mapped file using '..', this may add security vulnerabilities")
@@ -75,6 +79,7 @@ func (h *Handler) MapDir(dirPath string) error {
 			h.log.LogInfo("Mapped URI '/" + path + "' to file '" + dirPath + path + "'")
 		}
 
+		h.ValidPaths.PushBack("/" + path)
 		return nil
 	})
 
