@@ -39,6 +39,10 @@ const (
 	// Stops the current daemon.
 	Stop = "stop"
 
+	// Gets webby's current status, status needs to be representable in the single
+	// byte returned to the client after a daemon command.
+	Status = "status"
+
 	// Sets the log level for recording logs to file. Should interperet its
 	// argument to be the desired log level.
 	LogRecord = "log-record"
@@ -263,5 +267,47 @@ func CmdStop(socket net.Conn, log *logger.Log, arg bool) {
 		log.LogErr("Could not stop webby")
 	} else {
 		log.LogInfo("Stopped!")
+	}
+}
+
+func CmdStatus(socket net.Conn, log *logger.Log, arg bool) {
+	if !arg {
+		return
+	}
+
+	log.LogInfo("Requesting status from webby..")
+
+	var buf [1]byte
+	socket.Write(append([]byte(Status), 0))
+	socket.Read(buf[:])
+
+	status := WebbyStatus(buf[0])
+
+	log.LogInfo("Got status!")
+
+	print("\nstatus: ")
+
+	if status == Ok {
+		println("OK\n")
+		println("webby made HTTP GET requests to all hosted paths and got 200 for each.\n")
+		return
+	}
+
+	if status == HttpNon2xx {
+		println("Non 200\n")
+		println("webby made HTTP GET requests to all hosted paths, all responded but some did not give 200.\n")
+		return
+	}
+
+	if status == HttpPartialFail {
+		println("Partial Fail\n")
+		println("webby made HTTP GET requests to all hosted paths but some responded with a failure code, e.g. 400.\n")
+		return
+	}
+
+	if status == HttpFail {
+		println("Fail\n")
+		println("webby made HTTP GET requests to all hosted paths and all responded with a failure code, e.g. 400.\n")
+		return
 	}
 }

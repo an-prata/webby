@@ -141,6 +141,12 @@ func DefaultOptions() ServerOptions {
 	}
 }
 
+// Returns true if the config has the needed fields populated to support TLS and
+// HTTPS connections.
+func (opts *ServerOptions) SupportsTLS() bool {
+	return opts.Cert != "" && opts.Key != ""
+}
+
 // Replaces appropriate fields with default values.
 func (opts *ServerOptions) checkForDefaults() {
 	if opts.Site == "" {
@@ -150,8 +156,4 @@ func (opts *ServerOptions) checkForDefaults() {
 	if opts.Site[len(opts.Site)-1] != '/' {
 		opts.Site += "/"
 	}
-}
-
-func (opts *ServerOptions) supportsTLS() bool {
-	return opts.Cert != "" && opts.Key != ""
 }

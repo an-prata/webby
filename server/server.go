@@ -30,9 +30,10 @@ const (
 )
 
 type Server struct {
-	srv  *http.Server
-	log  *logger.Log
-	opts ServerOptions
+	Hndlr *Handler
+	srv   *http.Server
+	log   *logger.Log
+	opts  ServerOptions
 }
 
 // Creates a new server given the specified options. Will return an error if any
@@ -46,7 +47,7 @@ func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 		return nil, errors.New("Could not stat '" + opts.Site + "'")
 	}
 
-	if opts.supportsTLS() {
+	if opts.SupportsTLS() {
 		if _, err = os.Stat(opts.Cert); err != nil {
 			return nil, errors.New("Could not stat '" + opts.Cert + "'")
 		}
@@ -75,7 +76,7 @@ func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 		WriteTimeout:      time.Minute,
 	}
 
-	return &Server{&httpSrv, log, opts}, nil
+	return &Server{handler, &httpSrv, log, opts}, nil
 }
 
 // Starts the server, if TLS is supports then it is started in another thread
@@ -84,7 +85,7 @@ func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 // be stopped using the `Server.Stop()` method, in which case it will return an
 // error indicated this.
 func (s *Server) Start() error {
-	if s.opts.supportsTLS() {
+	if s.opts.SupportsTLS() {
 		go s.srv.ListenAndServeTLS(s.opts.Cert, s.opts.Key)
 	}
 

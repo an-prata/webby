@@ -5,6 +5,7 @@
 package daemon
 
 import (
+	"net/http"
 	"os"
 
 	"github.com/an-prata/webby/logger"
@@ -22,9 +23,6 @@ type DaemonCommandArg uint8
 // command.
 type DaemonCommandSuccess uint8
 
-// Type alias for the function signature of a daemon command callback.
-type DaemonCommandCallback func(DaemonCommandArg) error
-
 const (
 	// The daemon command completed successfuly.
 	Success DaemonCommandSuccess = iota
@@ -32,6 +30,22 @@ const (
 	// The daemon command failed.
 	Failure
 )
+
+// Represents the status returned by the status callback
+type WebbyStatus uint8
+
+const (
+	// We make sure that the first bit can be compared the same way it could on the
+	// original success constants.
+
+	Ok              WebbyStatus = WebbyStatus(Success)                     // All gets gave 200
+	HttpNon2xx      WebbyStatus = WebbyStatus(Failure) | ((iota + 1) << 1) // Not every get gave 200
+	HttpPartialFail                                                        // Some gets gave code >= 400
+	HttpFail                                                               // All gets gave code >= 400
+)
+
+// Type alias for the function signature of a daemon command callback.
+type DaemonCommandCallback func(DaemonCommandArg) DaemonCommandSuccess
 
 // Represents a signal originating at a daemon command and sent through a
 // channel by the reload callback.
@@ -56,34 +70,84 @@ func (r StopSignal) Signal() {}
 // Returns a function that will sent the `server.Restart` constant through the
 // given channel when called.
 func GetRestartCallback(serverCommandChan chan server.ServerThreadCommand) DaemonCommandCallback {
-	return func(_ DaemonCommandArg) error {
+	return func(_ DaemonCommandArg) DaemonCommandSuccess {
 		serverCommandChan <- server.Restart
-		return nil
+		return Success
 	}
 }
 
 // Returns a function that will send a `ReloadSignal` though the given channel
 // when called.
 func GetReloadCallback(signalChan chan os.Signal) DaemonCommandCallback {
-	return func(_ DaemonCommandArg) error {
+	return func(_ DaemonCommandArg) DaemonCommandSuccess {
 		signalChan <- ReloadSignal{}
-		return nil
+		return Success
 	}
 }
 
 // Returns a function that will send a `StopSignal` through the given channel
 // when called.
 func GetStopCallback(signalChan chan os.Signal) DaemonCommandCallback {
-	return func(_ DaemonCommandArg) error {
+	return func(_ DaemonCommandArg) DaemonCommandSuccess {
 		signalChan <- StopSignal{}
-		return nil
+		return Success
+	}
+}
+
+// Returns a function that simply returns `Success` when called. If callbacks
+// are being called and the daemon can give the success message to a connection
+// then we consider this to be "ok" on webby's side.
+func GetStatusCallback(handler *server.Handler, log *logger.Log) DaemonCommandCallback {
+	return func(_ DaemonCommandArg) DaemonCommandSuccess {
+		getsFailed := 0
+		getsNot200 := 0
+
+		for _, path := range handler.ValidPaths {
+			response, err := http.Get("http://localhost" + path)
+
+			if err != nil {
+				log.LogErr(err.Error())
+				log.LogErr("Could not make GET request to path '" + path + "'")
+				getsFailed++
+				continue
+			}
+
+			if response.StatusCode >= 400 {
+				getsFailed++
+			}
+
+			if response.StatusCode != 200 {
+				getsNot200++
+			}
+		}
+
+		if getsFailed >= len(handler.ValidPaths) {
+			log.LogErr("All HTTP requests made for status check failed")
+			log.LogInfo("Status requested, giving 'HttpFail'")
+			return DaemonCommandSuccess(HttpFail)
+		}
+
+		if getsFailed > 1 {
+			log.LogErr("Some HTTP requests made for status check failed")
+			log.LogInfo("Status requested, giving 'HttpPartialFail'")
+			return DaemonCommandSuccess(HttpPartialFail)
+		}
+
+		if getsNot200 > 1 {
+			log.LogWarn("Some HTTP requests made for status check gave code other that '200'")
+			log.LogInfo("Status requests, giving 'HttpNon2xx'")
+			return DaemonCommandSuccess(HttpNon2xx)
+		}
+
+		log.LogInfo("Status requested, giving 'OK'")
+		return DaemonCommandSuccess(Ok)
 	}
 }
 
 // Returns a function, that when called, will modify the given log's recording
 // log level to match its parameters.
 func GetLogPrintCallback(log *logger.Log) DaemonCommandCallback {
-	return func(arg DaemonCommandArg) error {
+	return func(arg DaemonCommandArg) DaemonCommandSuccess {
 		logLevel := logger.LogLevel(arg)
 		logLevel, err := logger.CheckLogLevel(uint8(logLevel))
 
@@ -92,14 +156,14 @@ func GetLogPrintCallback(log *logger.Log) DaemonCommandCallback {
 		}
 
 		log.Printing = logLevel
-		return nil
+		return Success
 	}
 }
 
 // Returns a function, that when called, will modify the given log's printing
 // log level to match its parameters.
 func GetLogRecordCallback(log *logger.Log) DaemonCommandCallback {
-	return func(arg DaemonCommandArg) error {
+	return func(arg DaemonCommandArg) DaemonCommandSuccess {
 		logLevel := logger.LogLevel(arg)
 		logLevel, err := logger.CheckLogLevel(uint8(logLevel))
 
@@ -108,6 +172,6 @@ func GetLogRecordCallback(log *logger.Log) DaemonCommandCallback {
 		}
 
 		log.Recording = logLevel
-		return nil
+		return Success
 	}
 }
