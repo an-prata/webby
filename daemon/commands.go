@@ -7,6 +7,7 @@ package daemon
 import (
 	"net"
 	"os"
+	"os/exec"
 	"os/user"
 	"strconv"
 	"syscall"
@@ -102,16 +103,24 @@ func StartForkedDaemon(log *logger.Log) {
 		Sys: &sysproc,
 	}
 
+	bin, err := exec.LookPath(os.Args[0])
+
+	if err != nil {
+		log.LogErr("Could not find webby binary")
+	}
+
+	log.LogInfo("Found webby binary (" + bin + ")...")
 	log.LogInfo("Starting process...")
 
 	proc, err := os.StartProcess(
-		os.Args[0],
+		bin,
 		[]string{os.Args[0], "-" + Daemon},
 		&attr,
 	)
 
 	if err != nil {
 		log.LogErr("Failed to start system process")
+		log.LogErr(err.Error())
 		return
 	}
 
