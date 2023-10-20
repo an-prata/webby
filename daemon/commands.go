@@ -109,7 +109,7 @@ func StartForkedDaemon(log *logger.Log) {
 		log.LogErr("Could not find webby binary")
 	}
 
-	log.LogInfo("Found webby binary...")
+	log.LogInfo("Found webby binary (" + bin + ")...")
 	log.LogInfo("Starting process...")
 
 	proc, err := os.StartProcess(
