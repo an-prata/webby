@@ -102,25 +102,25 @@ func (s *Server) StartThreaded() chan ServerThreadCommand {
 	commandChan := make(chan ServerThreadCommand, 1)
 
 	go func() {
-	Start:
-		go s.Start()
-		command := <-commandChan
-		s.Stop()
+		for {
+			go s.Start()
+			command := <-commandChan
+			s.Stop()
 
-		if command == Shutoff {
-			s.log.LogInfo("HTTP server shutting off...")
-			return
-		} else if command == Restart {
-			s.log.LogInfo("HTTP server restarting...")
-			srv, err := NewServer(s.opts, s.log)
-
-			if err != nil {
-				s.log.LogErr("Could not reinstantiate HTTP server")
+			if command == Shutoff {
+				s.log.LogInfo("HTTP server shutting off...")
 				return
-			}
+			} else if command == Restart {
+				s.log.LogInfo("HTTP server restarting...")
+				srv, err := NewServer(s.opts, s.log)
 
-			*s = *srv
-			goto Start
+				if err != nil {
+					s.log.LogErr("Could not reinstantiate HTTP server")
+					return
+				}
+
+				*s = *srv
+			}
 		}
 	}()
 
