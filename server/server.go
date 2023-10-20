@@ -30,10 +30,10 @@ const (
 )
 
 type Server struct {
-	Hndlr *Handler
-	srv   *http.Server
-	log   *logger.Log
-	opts  ServerOptions
+	ReqHandler *Handler
+	srv        *http.Server
+	log        *logger.Log
+	opts       ServerOptions
 }
 
 // Creates a new server given the specified options. Will return an error if any
