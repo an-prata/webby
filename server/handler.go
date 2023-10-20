@@ -18,8 +18,12 @@ import (
 // Responsible for handling HTTP requests with one of a custom response from a
 // custom handler, or a static file, prioritized in that order.
 type Handler struct {
+	// List of all valid web paths that this handler will respond to.
 	ValidPaths []string
-	pathMap    map[string]string
+
+	// A map of URL paths to their corosponding file path.
+	PathMap map[string]string
+
 	handlerMap map[string]http.Handler
 	log        *logger.Log
 }
@@ -49,7 +53,7 @@ func (h *Handler) MapFile(uriPath, filePath string) error {
 	}
 
 	h.log.LogInfo("Mapped URI '" + uriPath + "' to file '" + filePath + "'")
-	h.pathMap[uriPath] = filePath
+	h.PathMap[uriPath] = filePath
 	h.ValidPaths = append(h.ValidPaths, uriPath)
 
 	if strings.Contains(uriPath, "..") {
@@ -71,10 +75,10 @@ func (h *Handler) MapDir(dirPath string) error {
 		path = strings.ReplaceAll(path, dirPath, "")
 
 		if d.IsDir() {
-			h.pathMap["/"+path] = dirPath + path + "index.html"
+			h.PathMap["/"+path] = dirPath + path + "index.html"
 			h.log.LogInfo("Mapped URI '/" + path + "index.html' to file '" + dirPath + path + "'")
 		} else {
-			h.pathMap["/"+path] = dirPath + path
+			h.PathMap["/"+path] = dirPath + path
 			h.log.LogInfo("Mapped URI '/" + path + "' to file '" + dirPath + path + "'")
 		}
 
@@ -124,7 +128,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	file, ok := h.pathMap[req.URL.Path]
+	file, ok := h.PathMap[req.URL.Path]
 
 	if ok {
 		if _, err := os.Stat(file); err != nil {
