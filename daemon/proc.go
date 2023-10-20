@@ -92,6 +92,20 @@ Start:
 
 			return false
 		}, CONFIG_PATH)
+
+		for _, filePath := range srv.ReqHandler.PathMap {
+			server.CallOnChange(func(signal server.FileChangeSignal) bool {
+				if signal == server.TimeModifiedChange || signal == server.SizeChange {
+					log.LogInfo("Site file change detected, reloading...")
+					signalChan <- ReloadSignal{}
+					return true
+				} else if signal == server.InitialReadError || signal == server.ReadError {
+					log.LogErr("Failed to read site file while checking for change (auto reload is on)")
+				}
+
+				return false
+			}, filePath)
+		}
 	}
 
 	sig := <-signalChan
