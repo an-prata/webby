@@ -46,7 +46,8 @@ type ServerOptions struct {
 	// or "Info".
 	LogLevelRecord string
 
-	// Whether or not to check for changes in the config and reload automatically.
+	// Whether or not to check for changes in the config or site files and reload
+	// automatically.
 	AutoReload bool
 
 	// Paths that should be granted a dead response, can be used for fucking with
