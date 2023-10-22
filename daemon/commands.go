@@ -44,6 +44,10 @@ const (
 	// byte returned to the client after a daemon command.
 	Status = "status"
 
+	// Like the Daemon variant this variant should not have a callback, and is
+	// intended to generate a default configuration file.
+	GenConfig = "gen-config"
+
 	// Sets the log level for recording logs to file. Should interperet its
 	// argument to be the desired log level.
 	LogRecord = "log-record"
