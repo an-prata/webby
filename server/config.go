@@ -142,6 +142,32 @@ func DefaultOptions() ServerOptions {
 	}
 }
 
+func (opts *ServerOptions) WriteToFile(path string) error {
+	json_string, err := json.MarshalIndent(opts, "", "    ")
+
+	if err != nil {
+		return errors.New("Failed to parse ServerOptions into JSON: " + err.Error())
+	}
+
+	file, err := os.Create(path)
+
+	if err != nil {
+		return errors.New("Could not create file '" + path + "': " + err.Error())
+	}
+
+	_, err = file.Write(json_string)
+
+	if err != nil {
+		return errors.New("Could not write to file '" + path + "': " + err.Error())
+	}
+
+	if file.Close() != nil {
+		return errors.New("Could not close file '" + path + "': " + err.Error())
+	}
+
+	return nil
+}
+
 // Returns true if the config has the needed fields populated to support TLS and
 // HTTPS connections.
 func (opts *ServerOptions) SupportsTLS() bool {
