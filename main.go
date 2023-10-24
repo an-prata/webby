@@ -10,6 +10,7 @@ import (
 
 	"github.com/an-prata/webby/daemon"
 	"github.com/an-prata/webby/logger"
+	"github.com/an-prata/webby/server"
 )
 
 func main() {
@@ -19,6 +20,7 @@ func main() {
 	var restart bool
 	var stop bool
 	var status bool
+	var genConfig bool
 	var logRecord string
 	var logPrint string
 
@@ -28,6 +30,7 @@ func main() {
 	flag.BoolVar(&restart, daemon.Restart, false, "restarts the webby HTTP server, rescanning directories")
 	flag.BoolVar(&stop, daemon.Stop, false, "stops the running daemon")
 	flag.BoolVar(&status, daemon.Status, false, "gets webby's status by requesting that webby make HTTP get requests to all hosted paths")
+	flag.BoolVar(&genConfig, daemon.GenConfig, false, "generated a new default config at '"+daemon.CONFIG_PATH+"'")
 	flag.StringVar(&logRecord, daemon.LogRecord, "", "sets the log level to record to file, defaults to 'All'")
 	flag.StringVar(&logPrint, daemon.LogPrint, "", "sets the log level to print to standard out, defaults to 'All'")
 
@@ -39,6 +42,20 @@ func main() {
 	}
 
 	log, _ := logger.NewLog(logger.All, logger.None, "")
+
+	if genConfig {
+		log.LogInfo("Writing default config to '" + daemon.CONFIG_PATH + "'...")
+
+		config := server.DefaultOptions()
+		err := config.WriteToFile(daemon.CONFIG_PATH)
+
+		if err != nil {
+			log.LogErr(err.Error())
+		}
+
+		log.LogInfo("Done!")
+		return
+	}
 
 	if start {
 		daemon.StartForkedDaemon(&log)
