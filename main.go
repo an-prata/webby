@@ -48,7 +48,13 @@ func main() {
 	socket, err := net.Dial("unix", daemon.SocketPath)
 
 	if err != nil {
-		log.LogErr("Could not open Unix Domain Socket, you may need elevated privileges")
+		log.LogErr("Could not open Unix Domain Socket, webby may not be running or you may need elevated privileges")
+
+		if status {
+			log.LogInfo("webby's daemon used a Unix Domain Socket for control")
+			log.LogInfo("being unable to open the socket likely means webby is not running")
+		}
+
 		return
 	}
 
