@@ -97,7 +97,7 @@ func GetStopCallback(signalChan chan os.Signal) DaemonCommandCallback {
 // Returns a function that simply returns `Success` when called. If callbacks
 // are being called and the daemon can give the success message to a connection
 // then we consider this to be "ok" on webby's side.
-func GetStatusCallback(handler *server.Handler, log *logger.Log) DaemonCommandCallback {
+func GetStatusCallback(handler *server.Handler) DaemonCommandCallback {
 	return func(_ DaemonCommandArg) DaemonCommandSuccess {
 		getsFailed := 0
 		getsNot200 := 0
@@ -106,8 +106,8 @@ func GetStatusCallback(handler *server.Handler, log *logger.Log) DaemonCommandCa
 			response, err := http.Get("http://localhost" + path)
 
 			if err != nil {
-				log.LogErr(err.Error())
-				log.LogErr("Could not make GET request to path '" + path + "'")
+				logger.GlobalLog.LogErr(err.Error())
+				logger.GlobalLog.LogErr("Could not make GET request to path '" + path + "'")
 				getsFailed++
 				continue
 			}
@@ -122,56 +122,56 @@ func GetStatusCallback(handler *server.Handler, log *logger.Log) DaemonCommandCa
 		}
 
 		if getsFailed >= len(handler.ValidPaths) {
-			log.LogErr("All HTTP requests made for status check failed")
-			log.LogInfo("Status requested, giving 'HttpFail'")
+			logger.GlobalLog.LogErr("All HTTP requests made for status check failed")
+			logger.GlobalLog.LogInfo("Status requested, giving 'HttpFail'")
 			return DaemonCommandSuccess(HttpFail)
 		}
 
 		if getsFailed > 1 {
-			log.LogErr("Some HTTP requests made for status check failed")
-			log.LogInfo("Status requested, giving 'HttpPartialFail'")
+			logger.GlobalLog.LogErr("Some HTTP requests made for status check failed")
+			logger.GlobalLog.LogInfo("Status requested, giving 'HttpPartialFail'")
 			return DaemonCommandSuccess(HttpPartialFail)
 		}
 
 		if getsNot200 > 1 {
-			log.LogWarn("Some HTTP requests made for status check gave code other that '200'")
-			log.LogInfo("Status requests, giving 'HttpNon2xx'")
+			logger.GlobalLog.LogWarn("Some HTTP requests made for status check gave code other that '200'")
+			logger.GlobalLog.LogInfo("Status requests, giving 'HttpNon2xx'")
 			return DaemonCommandSuccess(HttpNon2xx)
 		}
 
-		log.LogInfo("Status requested, giving 'OK'")
+		logger.GlobalLog.LogInfo("Status requested, giving 'OK'")
 		return DaemonCommandSuccess(Ok)
 	}
 }
 
 // Returns a function, that when called, will modify the given log's recording
 // log level to match its parameters.
-func GetLogPrintCallback(log *logger.Log) DaemonCommandCallback {
+func GetLogPrintCallback() DaemonCommandCallback {
 	return func(arg DaemonCommandArg) DaemonCommandSuccess {
 		logLevel := logger.LogLevel(arg)
 		logLevel, err := logger.CheckLogLevel(uint8(logLevel))
 
 		if err != nil {
-			log.LogWarn("Invalid log level given, using 'All'")
+			logger.GlobalLog.LogWarn("Invalid log level given, using 'All'")
 		}
 
-		log.Printing = logLevel
+		logger.GlobalLog.Printing = logLevel
 		return Success
 	}
 }
 
 // Returns a function, that when called, will modify the given log's printing
 // log level to match its parameters.
-func GetLogRecordCallback(log *logger.Log) DaemonCommandCallback {
+func GetLogRecordCallback() DaemonCommandCallback {
 	return func(arg DaemonCommandArg) DaemonCommandSuccess {
 		logLevel := logger.LogLevel(arg)
 		logLevel, err := logger.CheckLogLevel(uint8(logLevel))
 
 		if err != nil {
-			log.LogWarn("Invalid log level given, using 'All'")
+			logger.GlobalLog.LogWarn("Invalid log level given, using 'All'")
 		}
 
-		log.Recording = logLevel
+		logger.GlobalLog.Recording = logLevel
 		return Success
 	}
 }

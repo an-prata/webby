@@ -18,44 +18,37 @@ const CONFIG_PATH = "/etc/webby/config.json"
 // Main function of daemon execution.
 func DaemonMain() {
 Start:
-	log, err := logger.NewLog(logger.All, logger.All, "")
-
-	if err != nil {
-		panic(err)
-	}
-
-	defer log.Close()
 	opts, err := server.LoadConfigFromPath(CONFIG_PATH)
 
 	if err != nil {
-		log.LogErr(err.Error())
-		log.LogWarn("Using default configuration due to errors")
+		logger.GlobalLog.LogErr(err.Error())
+		logger.GlobalLog.LogWarn("Using default configuration due to errors")
 	}
 
-	err = log.OpenFile(opts.Log)
+	err = logger.GlobalLog.OpenFile(opts.Log)
 
 	if err != nil {
-		log.LogErr("Could not open '" + opts.Log + "' for logging")
+		logger.GlobalLog.LogErr("Could not open '" + opts.Log + "' for logging")
 	}
 
-	err = log.SetRecordLevelFromString(opts.LogLevelPrint)
+	err = logger.GlobalLog.SetRecordLevelFromString(opts.LogLevelPrint)
 
 	if err != nil {
-		log.LogErr(err.Error())
-		log.LogWarn("Using log level 'All' for printing due to errors")
+		logger.GlobalLog.LogErr(err.Error())
+		logger.GlobalLog.LogWarn("Using log level 'All' for printing due to errors")
 	}
 
-	err = log.SetPrintLevelFromString(opts.LogLevelRecord)
+	err = logger.GlobalLog.SetPrintLevelFromString(opts.LogLevelRecord)
 
 	if err != nil {
-		log.LogErr(err.Error())
-		log.LogWarn("Using log level 'All' for recording due to errors")
+		logger.GlobalLog.LogErr(err.Error())
+		logger.GlobalLog.LogWarn("Using log level 'All' for recording due to errors")
 	}
 
-	srv, err := server.NewServer(opts, &log)
+	srv, err := server.NewServer(opts)
 
 	if err != nil {
-		log.LogErr(err.Error())
+		logger.GlobalLog.LogErr(err.Error())
 		return
 	}
 
@@ -67,14 +60,14 @@ Start:
 		Restart:   GetRestartCallback(serverCommandChan),
 		Reload:    GetReloadCallback(signalChan),
 		Stop:      GetStopCallback(signalChan),
-		Status:    GetStatusCallback(srv.ReqHandler, &log),
-		LogRecord: GetLogRecordCallback(&log),
-		LogPrint:  GetLogPrintCallback(&log),
-	}, log)
+		Status:    GetStatusCallback(srv.ReqHandler),
+		LogRecord: GetLogRecordCallback(),
+		LogPrint:  GetLogPrintCallback(),
+	})
 
 	if err != nil {
-		log.LogErr(err.Error())
-		log.LogErr("Could not open Unix Domain Socket")
+		logger.GlobalLog.LogErr(err.Error())
+		logger.GlobalLog.LogErr("Could not open Unix Domain Socket")
 		os.Exit(1)
 	}
 
@@ -83,11 +76,11 @@ Start:
 	if opts.AutoReload {
 		server.CallOnChange(func(signal server.FileChangeSignal) bool {
 			if signal == server.TimeModifiedChange || signal == server.SizeChange {
-				log.LogInfo("Config file change detected, reloading...")
+				logger.GlobalLog.LogInfo("Config file change detected, reloading...")
 				signalChan <- ReloadSignal{}
 				return true
 			} else if signal == server.InitialReadError || signal == server.ReadError {
-				log.LogErr("Failed to read config while checking for change (auto reload is on)")
+				logger.GlobalLog.LogErr("Failed to read config while checking for change (auto reload is on)")
 			}
 
 			return false
@@ -96,11 +89,11 @@ Start:
 		for _, filePath := range srv.ReqHandler.PathMap {
 			server.CallOnChange(func(signal server.FileChangeSignal) bool {
 				if signal == server.TimeModifiedChange || signal == server.SizeChange {
-					log.LogInfo("Site file change detected, reloading...")
+					logger.GlobalLog.LogInfo("Site file change detected, reloading...")
 					signalChan <- ReloadSignal{}
 					return true
 				} else if signal == server.InitialReadError || signal == server.ReadError {
-					log.LogErr("Failed to read site file while checking for change (auto reload is on)")
+					logger.GlobalLog.LogErr("Failed to read site file while checking for change (auto reload is on)")
 				}
 
 				return false
@@ -110,16 +103,16 @@ Start:
 
 	sig := <-signalChan
 	serverCommandChan <- server.Shutoff
-	log.LogInfo("Received signal: " + sig.String())
+	logger.GlobalLog.LogInfo("Received signal: " + sig.String())
 
-	log.LogInfo("Closing Unix Domain Socket...")
+	logger.GlobalLog.LogInfo("Closing Unix Domain Socket...")
 	commandListener.Close()
 
-	log.LogInfo("Stopping server...")
+	logger.GlobalLog.LogInfo("Stopping server...")
 	srv.Stop()
 
-	log.LogInfo("Closing log...")
-	log.Close()
+	logger.GlobalLog.LogInfo("Closing log...")
+	logger.GlobalLog.Close()
 
 	_, ok := sig.(ReloadSignal)
 

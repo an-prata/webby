@@ -29,19 +29,16 @@ type DaemonListener struct {
 
 	// Channel for blocking the `Close()` function to prevent bad memory access.
 	shuttoffChannel chan bool
-
-	// Webby log.
-	log logger.Log
 }
 
 // Creates a new Unix Domain Socket and returns a pointer to a listener for
 // application commands and requests on that socket. When the listener is
 // started all commands will be executed according to the given callbacks.
-func NewDaemonListener(callbacks map[DaemonCommand]DaemonCommandCallback, log logger.Log) (DaemonListener, error) {
+func NewDaemonListener(callbacks map[DaemonCommand]DaemonCommandCallback) (DaemonListener, error) {
 	os.Remove(SocketPath)
 	socket, err := net.Listen("unix", SocketPath)
 	shutoffChannel := make(chan bool, 1)
-	return DaemonListener{socket, callbacks, false, shutoffChannel, log}, err
+	return DaemonListener{socket, callbacks, false, shutoffChannel}, err
 }
 
 // Starts listening for connections on the Unix Domain Socket. Each connection
@@ -54,7 +51,7 @@ func (daemon *DaemonListener) Listen() error {
 		connection, err := daemon.socket.Accept()
 
 		if err != nil && !daemon.shuttingOff {
-			daemon.log.LogErr("Failed to accept daemon connection")
+			logger.GlobalLog.LogErr("Failed to accept daemon connection")
 			return err
 		} else if daemon.shuttingOff {
 			break
@@ -64,7 +61,7 @@ func (daemon *DaemonListener) Listen() error {
 		go daemon.handleConnection(connection, &wg)
 	}
 
-	daemon.log.LogInfo("Waiting for connections to close...")
+	logger.GlobalLog.LogInfo("Waiting for connections to close...")
 	wg.Wait()
 	daemon.shuttoffChannel <- true
 	return nil
@@ -76,7 +73,7 @@ func (daemon *DaemonListener) Close() error {
 	daemon.shuttingOff = true
 	// _ = <-daemon.shuttoffChannel
 	if daemon.socket == nil {
-		daemon.log.LogErr("socket was nil")
+		logger.GlobalLog.LogErr("socket was nil")
 	}
 	return daemon.socket.Close()
 }
@@ -90,14 +87,14 @@ func (daemon *DaemonListener) handleConnection(connection net.Conn, wg *sync.Wai
 	n, err := connection.Read(buf[:])
 
 	if err != nil {
-		daemon.log.LogErr("Could not read from daemon connection")
+		logger.GlobalLog.LogErr("Could not read from daemon connection")
 		return
 	}
 
 	fn, ok := daemon.callbacks[DaemonCommand(buf[:n-1])]
 
 	if !ok {
-		daemon.log.LogErr("No callback for requested daemon command " + string(buf[:n-1]))
+		logger.GlobalLog.LogErr("No callback for requested daemon command " + string(buf[:n-1]))
 	}
 
 	ret := fn(DaemonCommandArg(buf[n-1]))
@@ -105,7 +102,7 @@ func (daemon *DaemonListener) handleConnection(connection net.Conn, wg *sync.Wai
 	// We ont compare directly to `Success` in order to allow for commands to use
 	// the available 7 bits of their return value.
 	if ret&Success != Success {
-		daemon.log.LogErr((fmt.Sprintf("Failed to respond to command: %s %d", string(buf[:n-1]), uint8(buf[n-1]))))
+		logger.GlobalLog.LogErr((fmt.Sprintf("Failed to respond to command: %s %d", string(buf[:n-1]), uint8(buf[n-1]))))
 
 		// Giving the `ret` variable rather than just the `Success` constant is
 		// important for allowing some commands to use the other 7 bits available in
