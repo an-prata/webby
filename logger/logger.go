@@ -53,7 +53,15 @@ type Log struct {
 }
 
 // Global logger instance.
-var GlobalLog, _ = NewLog(All, All, "")
+var GlobalLog = func() Log {
+	log, err := NewLog(All, All, "")
+
+	if err != nil {
+		panic("Failed to instantiate logger: " + err.Error())
+	}
+
+	return log
+}()
 
 // Produces a log level from a string. The string is not cap-sensitive and must
 // be one of "error", "warning", or "info". Some alternative strings will also
