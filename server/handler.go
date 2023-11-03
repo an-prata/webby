@@ -25,7 +25,6 @@ type Handler struct {
 	PathMap map[string]string
 
 	handlerMap map[string]http.Handler
-	log        *logger.Log
 }
 
 // A custom handler that may respond with special or dynamic data rather than a
@@ -35,12 +34,11 @@ type CustomHandler struct {
 }
 
 // Creates a new handler that will log messages to the given log.
-func NewHandler(log *logger.Log) *Handler {
+func NewHandler() *Handler {
 	return &Handler{
 		[]string{},
 		map[string]string{},
 		map[string]http.Handler{},
-		log,
 	}
 }
 
@@ -48,16 +46,16 @@ func NewHandler(log *logger.Log) *Handler {
 // given file path fails.
 func (h *Handler) MapFile(uriPath, filePath string) error {
 	if _, err := os.Stat(filePath); err != nil {
-		h.log.LogErr("Could not map '" + uriPath + "' to '" + filePath + "' due to failed stat")
+		logger.GlobalLog.LogErr("Could not map '" + uriPath + "' to '" + filePath + "' due to failed stat")
 		return errors.New("Could not stat '" + filePath + "'")
 	}
 
-	h.log.LogInfo("Mapped URI '" + uriPath + "' to file '" + filePath + "'")
+	logger.GlobalLog.LogInfo("Mapped URI '" + uriPath + "' to file '" + filePath + "'")
 	h.PathMap[uriPath] = filePath
 	h.ValidPaths = append(h.ValidPaths, uriPath)
 
 	if strings.Contains(uriPath, "..") {
-		h.log.LogWarn("Mapped file using '..', this may add security vulnerabilities")
+		logger.GlobalLog.LogWarn("Mapped file using '..', this may add security vulnerabilities")
 	}
 
 	return nil
@@ -68,7 +66,7 @@ func (h *Handler) MapFile(uriPath, filePath string) error {
 func (h *Handler) MapDir(dirPath string) error {
 	err := filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
 		if _, err := os.Stat(path); err != nil {
-			h.log.LogErr("Could not stat '" + path + "'")
+			logger.GlobalLog.LogErr("Could not stat '" + path + "'")
 			return nil
 		}
 
@@ -76,10 +74,10 @@ func (h *Handler) MapDir(dirPath string) error {
 
 		if d.IsDir() {
 			h.PathMap["/"+path] = dirPath + path + "index.html"
-			h.log.LogInfo("Mapped URI '/" + path + "index.html' to file '" + dirPath + path + "'")
+			logger.GlobalLog.LogInfo("Mapped URI '/" + path + "index.html' to file '" + dirPath + path + "'")
 		} else {
 			h.PathMap["/"+path] = dirPath + path
-			h.log.LogInfo("Mapped URI '/" + path + "' to file '" + dirPath + path + "'")
+			logger.GlobalLog.LogInfo("Mapped URI '/" + path + "' to file '" + dirPath + path + "'")
 		}
 
 		h.ValidPaths = append(h.ValidPaths, "/"+path)
@@ -104,10 +102,10 @@ func (h *Handler) AddDeadResponses(paths []string) {
 			path = "/" + path
 		}
 
-		h.log.LogInfo("Mapped URI '" + path + "' to a dead response.")
+		logger.GlobalLog.LogInfo("Mapped URI '" + path + "' to a dead response.")
 		h.handlerMap[path] = CustomHandler{
 			Handler: func(w http.ResponseWriter, req *http.Request) {
-				h.log.LogInfo("Dead responding to request from '" + req.RemoteAddr + "'")
+				logger.GlobalLog.LogInfo("Dead responding to request from '" + req.RemoteAddr + "'")
 				http.Redirect(w, req, "http://localhost/"+path, http.StatusMovedPermanently)
 			},
 		}
@@ -115,10 +113,10 @@ func (h *Handler) AddDeadResponses(paths []string) {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	h.log.LogInfo("Got request (" + req.Proto + ") from " + req.RemoteAddr + " for " + req.URL.Path)
+	logger.GlobalLog.LogInfo("Got request (" + req.Proto + ") from " + req.RemoteAddr + " for " + req.URL.Path)
 
 	if strings.Contains(req.URL.Path, "..") {
-		h.log.LogWarn("Request was made to a path containing '..' by " + req.RemoteAddr)
+		logger.GlobalLog.LogWarn("Request was made to a path containing '..' by " + req.RemoteAddr)
 	}
 
 	handler, ok := h.handlerMap[req.URL.Path]
@@ -132,7 +130,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if ok {
 		if _, err := os.Stat(file); err != nil {
-			h.log.LogErr("A request was made for '" + file + "' but stat failed")
+			logger.GlobalLog.LogErr("A request was made for '" + file + "' but stat failed")
 		}
 
 		http.ServeFile(w, req, file)

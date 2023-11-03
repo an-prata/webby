@@ -32,14 +32,13 @@ const (
 type Server struct {
 	ReqHandler *Handler
 	srv        *http.Server
-	log        *logger.Log
 	opts       ServerOptions
 }
 
 // Creates a new server given the specified options. Will return an error if any
 // of the given paths could not be statted or if the program lacks read
 // permissions. This function will map directories from the options given.
-func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
+func NewServer(opts ServerOptions) (*Server, error) {
 	var err error
 	opts.checkForDefaults()
 
@@ -65,7 +64,7 @@ func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 		port = ""
 	}
 
-	handler := NewHandler(log)
+	handler := NewHandler()
 	handler.MapDir(opts.Site)
 	handler.AddDeadResponses(opts.DeadPaths)
 
@@ -76,7 +75,7 @@ func NewServer(opts ServerOptions, log *logger.Log) (*Server, error) {
 		WriteTimeout:      time.Minute,
 	}
 
-	return &Server{handler, &httpSrv, log, opts}, nil
+	return &Server{handler, &httpSrv, opts}, nil
 }
 
 // Starts the server, if TLS is supports then it is started in another thread
@@ -108,14 +107,14 @@ func (s *Server) StartThreaded() chan ServerThreadCommand {
 			s.Stop()
 
 			if command == Shutoff {
-				s.log.LogInfo("HTTP server shutting off...")
+				logger.GlobalLog.LogInfo("HTTP server shutting off...")
 				return
 			} else if command == Restart {
-				s.log.LogInfo("HTTP server restarting...")
-				srv, err := NewServer(s.opts, s.log)
+				logger.GlobalLog.LogInfo("HTTP server restarting...")
+				srv, err := NewServer(s.opts)
 
 				if err != nil {
-					s.log.LogErr("Could not reinstantiate HTTP server")
+					logger.GlobalLog.LogErr("Could not reinstantiate HTTP server")
 					return
 				}
 
