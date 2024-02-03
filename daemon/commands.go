@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/an-prata/webby/client"
 	"github.com/an-prata/webby/logger"
 )
 
@@ -20,16 +21,6 @@ import (
 type DaemonCommand string
 
 const (
-	// Included here for completeness, this command should not have a callback that
-	// sends a daemon comand as it is intended to be the start of the daemon
-	// process.
-	Daemon = "daemon"
-
-	// Included for the same reasons as `Daemon` and should also not have a
-	// callback. Starts the daemon process much like `Daemon` but forks the
-	// process into the background.
-	Start = "start"
-
 	// Restarts the HTTP server and rescans directories. Useful when edits have
 	// been made to the website contents. Should ignore the passed in argument.
 	Restart = "restart"
@@ -118,7 +109,7 @@ func StartForkedDaemon(log *logger.Log) {
 
 	proc, err := os.StartProcess(
 		bin,
-		[]string{os.Args[0], "-" + Daemon},
+		[]string{os.Args[0], "-" + client.Daemon},
 		&attr,
 	)
 

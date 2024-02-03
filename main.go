@@ -8,6 +8,7 @@ import (
 	"flag"
 	"net"
 
+	"github.com/an-prata/webby/client"
 	"github.com/an-prata/webby/daemon"
 	"github.com/an-prata/webby/logger"
 	"github.com/an-prata/webby/server"
@@ -23,9 +24,11 @@ func main() {
 	var genConfig bool
 	var logRecord string
 	var logPrint string
+	var showLog bool
 
-	flag.BoolVar(&daemonProc, daemon.Daemon, false, "runs the webby server daemon process rather than behaving like a control application")
-	flag.BoolVar(&start, daemon.Start, false, "starts the daemon in a new process and forks it into the background")
+	flag.BoolVar(&daemonProc, client.Daemon, false, "runs the webby server daemon process rather than behaving like a control application")
+	flag.BoolVar(&start, client.Start, false, "starts the daemon in a new process and forks it into the background")
+	flag.BoolVar(&showLog, client.ShowLog, false, "shows the server log")
 	flag.BoolVar(&reload, daemon.Reload, false, "reloads the configuration file and then restarts, this will reset log levels")
 	flag.BoolVar(&restart, daemon.Restart, false, "restarts the webby HTTP server, rescanning directories")
 	flag.BoolVar(&stop, daemon.Stop, false, "stops the running daemon")
