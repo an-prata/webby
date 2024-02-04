@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/an-prata/webby/client"
 	"github.com/an-prata/webby/logger"
 )
 
@@ -109,7 +108,7 @@ func StartForkedDaemon(log *logger.Log) {
 
 	proc, err := os.StartProcess(
 		bin,
-		[]string{os.Args[0], "-" + client.Daemon},
+		[]string{os.Args[0], "-daemon"},
 		&attr,
 	)
 

@@ -4,6 +4,13 @@
 
 package client
 
+import (
+	"os"
+
+	"github.com/an-prata/webby/daemon"
+	"github.com/an-prata/webby/server"
+)
+
 const (
 	// Runs the daemon proccess.
 	Daemon = "daemon"
@@ -15,3 +22,21 @@ const (
 	// Reads the server log file and outputs it to the console.
 	ShowLog = "show-log"
 )
+
+func ShowLogFile() error {
+	opts, err := server.LoadConfigFromPath(daemon.CONFIG_PATH)
+
+	if err != nil {
+		return err
+	}
+
+	buf, err := os.ReadFile(opts.Log)
+
+	if err != nil {
+		return err
+	}
+
+	print(string(buf))
+
+	return nil
+}

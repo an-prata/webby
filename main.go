@@ -60,6 +60,16 @@ func main() {
 		return
 	}
 
+	if showLog {
+		err := client.ShowLogFile()
+
+		if err != nil {
+			log.LogErr("Could not read server log file: " + err.Error())
+		}
+
+		return
+	}
+
 	if start {
 		daemon.StartForkedDaemon(&log)
 		return
