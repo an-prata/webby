@@ -82,14 +82,13 @@ func NewServer(opts ServerOptions) (*Server, error) {
 // and regular HTTP is started in the current thread. This function will only
 // ever return on an error. If the server is started in this fashion then it may
 // be stopped using the `Server.Stop()` method, in which case it will return an
-// error indicated this.
+// error indicating this.
 func (s *Server) Start() error {
 	if s.opts.SupportsTLS() {
 		go s.srv.ListenAndServeTLS(s.opts.Cert, s.opts.Key)
 	}
 
 	return s.srv.ListenAndServe()
-
 }
 
 // Starts the server in a seperate thread and returns a channel for giving said
