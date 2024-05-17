@@ -64,7 +64,7 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		port = ""
 	}
 
-	handler := NewHandler()
+	handler := NewHandler(opts.RedirectHttp)
 	handler.MapDir(opts.Site)
 	handler.AddDeadResponses(opts.DeadPaths)
 

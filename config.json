@@ -7,5 +7,6 @@
 	"LogLevelPrint": "All",
 	"LogLevelRecord": "All",
 	"AutoReload": true,
-	"DeadPaths": []
+	"DeadPaths": [],
+	"RedirectHttp": false
 }

@@ -25,6 +25,10 @@ type Handler struct {
 	PathMap map[string]string
 
 	handlerMap map[string]http.Handler
+
+	// Whether or not the handler should automatically redirect HTTP requests to an
+	// equivilant HTTPS URL.
+	redirectHttp bool
 }
 
 // A custom handler that may respond with special or dynamic data rather than a
@@ -33,12 +37,13 @@ type CustomHandler struct {
 	Handler func(http.ResponseWriter, *http.Request)
 }
 
-// Creates a new handler that will log messages to the given log.
-func NewHandler() *Handler {
+// Creates a new Handler, redirecting to HTTPS automatically if directed.
+func NewHandler(redirectHttp bool) *Handler {
 	return &Handler{
 		[]string{},
 		map[string]string{},
 		map[string]http.Handler{},
+		redirectHttp,
 	}
 }
 
@@ -114,6 +119,12 @@ func (h *Handler) AddDeadResponses(paths []string) {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	logger.GlobalLog.LogInfo("Got request (" + req.Proto + ") from " + req.RemoteAddr + " for " + req.URL.Path)
+
+	if h.redirectHttp && req.ProtoMajor < 2 {
+		http.Redirect(w, req, "https://"+req.Host+req.URL.Path, http.StatusMovedPermanently)
+		logger.GlobalLog.LogInfo("Redirected HTTP request for '" + req.URL.Path + "' to HTTPS")
+		return
+	}
 
 	if strings.Contains(req.URL.Path, "..") {
 		logger.GlobalLog.LogWarn("Request was made to a path containing '..' by " + req.RemoteAddr)

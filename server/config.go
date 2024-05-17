@@ -54,6 +54,9 @@ type ServerOptions struct {
 	// bot probing or the like. A dead response is just the name I gave to
 	// redirecting a request back onto the client for the same path.
 	DeadPaths []string
+
+	// Redirect automatically from HTTP to HTTPS.
+	RedirectHttp bool
 }
 
 // Tries to parse JSON for a `ServerOptions` with the file at the given path.
@@ -161,7 +164,7 @@ func (opts *ServerOptions) WriteToFile(path string) error {
 		return errors.New("Could not write to file '" + path + "': " + err.Error())
 	}
 
-	if file.Close() != nil {
+	if err = file.Close(); err != nil {
 		return errors.New("Could not close file '" + path + "': " + err.Error())
 	}
 
