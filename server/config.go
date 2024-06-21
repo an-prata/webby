@@ -9,6 +9,8 @@ import (
 	"errors"
 	"os"
 	"time"
+
+	"github.com/an-prata/webby/logger"
 )
 
 type FileChangeSignal = uint8
@@ -66,7 +68,8 @@ func LoadConfigFromPath(path string) (ServerOptions, error) {
 		return DefaultOptions(), errors.New("Could not stat config at '" + path + "'")
 	}
 
-	var opts ServerOptions
+	var optsMap map[string]interface{}
+	opts := DefaultOptions()
 
 	bytes, err := os.ReadFile(path)
 
@@ -74,8 +77,79 @@ func LoadConfigFromPath(path string) (ServerOptions, error) {
 		return DefaultOptions(), errors.New("Could not read config at '" + path + "'")
 	}
 
-	if json.Unmarshal(bytes, &opts) != nil {
+	if json.Unmarshal(bytes, &optsMap) != nil {
 		return DefaultOptions(), errors.New("Could not parse config JSON at '" + path + "'")
+	}
+
+	for k, v := range optsMap {
+		switch k {
+		case "Site":
+			if value, ok := v.(string); ok {
+				opts.Site = value
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'Site' field in config to be a string.")
+			}
+		case "Cert":
+			if value, ok := v.(string); ok {
+				opts.Cert = value
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'Cert' field in config to be a string.")
+			}
+		case "Key":
+			if value, ok := v.(string); ok {
+				opts.Key = value
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'Key' field in config to be a string.")
+			}
+		case "Port":
+			if value, ok := v.(float64); ok {
+				opts.Port = int32(value)
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'Port' field in config to be a number.")
+			}
+		case "Log":
+			if value, ok := v.(string); ok {
+				opts.Log = value
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'Log' field in config to be a string.")
+			}
+		case "LogLevelPrint":
+			if value, ok := v.(string); ok {
+				opts.LogLevelPrint = value
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'LogLevelPrint' field in config to be a string.")
+			}
+		case "LogLevelRecord":
+			if value, ok := v.(string); ok {
+				opts.LogLevelRecord = value
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'LogLevelRecord' field in config to be a string.")
+			}
+		case "AutoReload":
+			if value, ok := v.(bool); ok {
+				opts.AutoReload = value
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'AutoReload' field in config to be a bool.")
+			}
+		case "DeadPaths":
+			if value, ok := v.([]interface{}); ok {
+				for _, path := range value {
+					if p, ok := path.(string); ok {
+						opts.DeadPaths = append(opts.DeadPaths, p)
+					} else {
+						logger.GlobalLog.LogWarn("Expected all elements of 'DeadPaths' to be strings")
+					}
+				}
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'DeadPaths' field in config to be a list of strings.")
+			}
+		case "RedirectHttp":
+			if value, ok := v.(bool); ok {
+				opts.RedirectHttp = value
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'RedirectHttp' field in config to be a bool.")
+			}
+		}
 	}
 
 	return opts, nil
