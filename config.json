@@ -8,5 +8,7 @@
 	"LogLevelRecord": "All",
 	"AutoReload": true,
 	"DeadPaths": [],
-	"RedirectHttp": false
+	"RedirectHttp": false,
+	"WriteTimeout": 60,
+	"ReadTimeout": 60
 }
