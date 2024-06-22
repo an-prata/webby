@@ -60,10 +60,17 @@ type ServerOptions struct {
 
 	// Redirect automatically from HTTP to HTTPS.
 	RedirectHttp bool
+
+	// Response write timeout in seconds.
+	WriteTimeout int64
+
+	// Request read timeout in seconds.
+	ReadTimeout int64
 }
 
 // Tries to parse JSON for a `ServerOptions` with the file at the given path.
-// Returns an error and a default configuration on failure.
+// Returns an error and a default configuration on parse failure, individual
+// options are replaced by defaults for incorrect types and absences.
 func LoadConfigFromPath(path string) (ServerOptions, error) {
 	if _, err := os.Stat(path); err != nil {
 		return DefaultOptions(), errors.New("Could not stat config at '" + path + "'")
@@ -150,6 +157,18 @@ func LoadConfigFromPath(path string) (ServerOptions, error) {
 			} else {
 				logger.GlobalLog.LogWarn("Expected 'RedirectHttp' field in config to be a bool.")
 			}
+		case "WriteTimeout":
+			if value, ok := v.(float64); ok {
+				opts.WriteTimeout = int64(value)
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'WriteTimeout' field in config to be a number.")
+			}
+		case "ReadTimeout":
+			if value, ok := v.(float64); ok {
+				opts.ReadTimeout = int64(value)
+			} else {
+				logger.GlobalLog.LogWarn("Expected 'ReadTimout' field in config to be a number.")
+			}
 		}
 	}
 
@@ -167,7 +186,10 @@ func (opts *ServerOptions) Show() {
 	logger.GlobalLog.LogInfo("Config: LogLevelRecord: " + opts.LogLevelRecord)
 	logger.GlobalLog.LogInfo("Config: AutoReload: " + strconv.FormatBool(opts.AutoReload))
 	logger.GlobalLog.LogInfo("Config: RedirectHttp: " + strconv.FormatBool(opts.RedirectHttp))
+	logger.GlobalLog.LogInfo("Config: WriteTimeout: " + strconv.FormatInt(int64(opts.WriteTimeout), 10))
+	logger.GlobalLog.LogInfo("Config: ReadTimeout: " + strconv.FormatInt(int64(opts.ReadTimeout), 10))
 }
+
 // Watches for changes in the given file, intended for configs but anything
 // should work. This function will report all errors through the given callback.
 //

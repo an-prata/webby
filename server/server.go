@@ -71,8 +71,8 @@ func NewServer(opts ServerOptions) (*Server, error) {
 	httpSrv := http.Server{
 		Addr:              port,
 		Handler:           handler,
-		ReadHeaderTimeout: time.Minute,
-		WriteTimeout:      time.Minute,
+		ReadHeaderTimeout: time.Duration(opts.ReadTimeout) * time.Second,
+		WriteTimeout:      time.Duration(opts.WriteTimeout) * time.Second,
 	}
 
 	return &Server{handler, &httpSrv, opts}, nil
