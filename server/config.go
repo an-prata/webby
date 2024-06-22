@@ -251,6 +251,8 @@ func DefaultOptions() ServerOptions {
 		LogLevelRecord: "all",
 		AutoReload:     true,
 		DeadPaths:      []string{},
+		WriteTimeout:   60,
+		ReadTimeout:    60,
 	}
 }
 
