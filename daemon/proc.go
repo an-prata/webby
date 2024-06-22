@@ -25,6 +25,8 @@ Start:
 		logger.GlobalLog.LogWarn("Using default configuration due to errors")
 	}
 
+	opts.Show()
+
 	err = logger.GlobalLog.OpenFile(opts.Log)
 
 	if err != nil {

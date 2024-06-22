@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/an-prata/webby/logger"
@@ -155,6 +156,18 @@ func LoadConfigFromPath(path string) (ServerOptions, error) {
 	return opts, nil
 }
 
+// Prints log options to the info log.
+func (opts *ServerOptions) Show() {
+	logger.GlobalLog.LogInfo("Config: Site: " + opts.Site)
+	logger.GlobalLog.LogInfo("Config: Cert: " + opts.Cert)
+	logger.GlobalLog.LogInfo("Config: Key: " + opts.Key)
+	logger.GlobalLog.LogInfo("Config: Port: " + strconv.FormatInt(int64(opts.Port), 10))
+	logger.GlobalLog.LogInfo("Config: Log: " + opts.Log)
+	logger.GlobalLog.LogInfo("Config: LogLevelPrint: " + opts.LogLevelPrint)
+	logger.GlobalLog.LogInfo("Config: LogLevelRecord: " + opts.LogLevelRecord)
+	logger.GlobalLog.LogInfo("Config: AutoReload: " + strconv.FormatBool(opts.AutoReload))
+	logger.GlobalLog.LogInfo("Config: RedirectHttp: " + strconv.FormatBool(opts.RedirectHttp))
+}
 // Watches for changes in the given file, intended for configs but anything
 // should work. This function will report all errors through the given callback.
 //
