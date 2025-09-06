@@ -95,7 +95,7 @@ Start:
 					signalChan <- ReloadSignal{}
 					return true
 				} else if signal == server.InitialReadError || signal == server.ReadError {
-					logger.GlobalLog.LogErr("Failed to read site file while checking for change (auto reload is on)")
+					logger.GlobalLog.LogErr("Failed to read site file while checking for change (auto reload is on): " + filePath)
 				}
 
 				return false
