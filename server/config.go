@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Evan Overman (https://an-prata.it).
+// Copyright (c) 2025 Evan Overman.
 // Licensed under the MIT License.
 // See LICENSE file in repository root for complete license text.
 

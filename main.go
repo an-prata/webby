@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Evan Overman (https://an-prata.it).
+// Copyright (c) 2025 Evan Overman.
 // Licensed under the MIT License.
 // See LICENSE file in repository root for complete license text.
 
@@ -7,6 +7,7 @@ package main
 import (
 	"flag"
 	"net"
+	"strconv"
 
 	"github.com/an-prata/webby/client"
 	"github.com/an-prata/webby/daemon"
@@ -15,6 +16,11 @@ import (
 )
 
 func main() {
+	const VERSION_MAJOR = 4
+	const VERSION_MINOR = 3
+	const VERSION_PATCH = 0
+
+	var version bool
 	var daemonProc bool
 	var start bool
 	var reload bool
@@ -26,6 +32,7 @@ func main() {
 	var logPrint string
 	var showLog bool
 
+	flag.BoolVar(&version, "version", false, "prints version and exits")
 	flag.BoolVar(&daemonProc, client.Daemon, false, "runs the webby server daemon process rather than behaving like a control application")
 	flag.BoolVar(&start, client.Start, false, "starts the daemon in a new process and forks it into the background")
 	flag.BoolVar(&showLog, client.ShowLog, false, "shows the server log")
@@ -38,6 +45,12 @@ func main() {
 	flag.StringVar(&logPrint, daemon.LogPrint, "", "sets the log level to print to standard out, defaults to 'All'")
 
 	flag.Parse()
+
+	if version {
+		println("webby version " + strconv.Itoa(VERSION_MAJOR) + "." + strconv.Itoa(VERSION_MINOR) + "." + strconv.Itoa(VERSION_PATCH))
+		println("Copyright (c) Evan Overman 2023 - 2025")
+		return
+	}
 
 	if daemonProc {
 		daemon.DaemonMain()
