@@ -78,11 +78,8 @@ func (h *Handler) MapDir(dirPath string) error {
 		path = strings.ReplaceAll(path, dirPath, "")
 
 		if d.IsDir() {
-			if !strings.HasSuffix(path, "/") && len(path) != 0 {
-				path = path + "/"
-			}
-
-			h.PathMap["/"+path] = dirPath + path + "index.html"
+			h.PathMap["/"+path] = dirPath + path + "/index.html"
+			h.PathMap["/"+path+"/"] = dirPath + path + "/index.html"
 			logger.GlobalLog.LogInfo("Mapped URI '/" + path + "index.html' to file '" + dirPath + path + "'")
 		} else {
 			h.PathMap["/"+path] = dirPath + path
